@@ -1,0 +1,21 @@
+{
+  "hotkey": {
+    "toggle_draw": "ctrl+alt+d"
+  },
+  "screens": {
+    "cover_all": true
+  },
+  "fade": {
+    "enabled": true,
+    "delay_seconds": 8
+  },
+  "presets": [
+    {"name": "yellow",  "color": "#FFE600", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
+    {"name": "magenta", "color": "#FF2BD6", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
+    {"name": "cyan",    "color": "#19E3FF", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
+    {"name": "mint",    "color": "#4DFFA6", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
+    {"name": "white",   "color": "#FFFFFF", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
+    {"name": "ink",     "color": "#111111", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
+    {"name": "marker",  "color": "#FFE600", "thickness_px": 28, "transparency": {"enabled": true,  "percent": 55}, "outline": {"enabled": false, "thickness_px": 0}}
+  ]
+}

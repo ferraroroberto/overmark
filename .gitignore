@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.log
+# Secrets and this machine's settings (config.sample.json is the template)
+.env
+config.json
+config.json.tmp
+# Scratch and runtime output: never beside the code
+tmp/
+.tmp/
+.launcher-tmp/
+runtime/
+state/
+.proof/
