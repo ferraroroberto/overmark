@@ -1,4 +1,4 @@
 layer       = "enabling"
 icon        = "🖍️"
-description = "Screen annotation for live facilitation: draw on any screen while the controls stay out of the capture."
+description = "Screen annotation for live facilitation, with the controls hidden from capture."
 depends_on  = ["project-scaffolding"]
