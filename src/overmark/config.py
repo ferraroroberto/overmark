@@ -19,6 +19,7 @@ from overmark.keepawake import (
     parse_mode,
 )
 from overmark.keymap import DEFAULT_KEYS, normalize_combo, parse_hotkey
+from overmark.recording.options import RecordingOptions, options_from_dict, options_to_dict
 
 log = logging.getLogger(__name__)
 
@@ -28,6 +29,8 @@ SAMPLE_PATH = REPO_ROOT / "config.sample.json"
 
 PRESET_COUNT = 7
 DEFAULT_HOTKEY = "ctrl+alt+d"
+DEFAULT_RECORD_HOTKEY = "ctrl+alt+f9"
+DEFAULT_PAUSE_HOTKEY = "ctrl+alt+f10"
 MAX_TRANSPARENCY_PERCENT = 95  # fully transparent ink would be invisible, not a useful preset
 
 
@@ -86,12 +89,15 @@ def default_presets() -> list[Preset]:
 @dataclass
 class Settings:
     toggle_hotkey: str = DEFAULT_HOTKEY
+    record_hotkey: str = DEFAULT_RECORD_HOTKEY
+    pause_hotkey: str = DEFAULT_PAUSE_HOTKEY
     cover_all_screens: bool = True
     fade: Fade = field(default_factory=Fade)
     presets: list[Preset] = field(default_factory=default_presets)
     sizes: Sizes = field(default_factory=Sizes)
     keys: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_KEYS))
     keep_awake: KeepAwake = field(default_factory=KeepAwake)
+    recording: RecordingOptions = field(default_factory=RecordingOptions)
 
 
 def _is_hex_color(value: Any) -> bool:
@@ -201,16 +207,20 @@ def _keep_awake_from(raw: Any) -> KeepAwake:
     )
 
 
+def _hotkey(raw: dict[str, Any], key: str, default: str) -> str:
+    combo = raw.get(key, default)
+    try:
+        parse_hotkey(str(combo))
+        return normalize_combo(str(combo))
+    except ValueError as exc:
+        log.warning("⚠️ config: hotkey.%s=%r invalid (%s); using %s", key, combo, exc, default)
+        return default
+
+
 def settings_from_dict(raw: dict[str, Any]) -> Settings:
     """Build settings from parsed JSON, falling back to defaults key by key."""
     base = Settings()
-    hotkey = (raw.get("hotkey") or {}).get("toggle_draw", base.toggle_hotkey)
-    try:
-        parse_hotkey(str(hotkey))
-        hotkey = normalize_combo(str(hotkey))
-    except ValueError as exc:
-        log.warning("⚠️ config: hotkey %r invalid (%s); using %s", hotkey, exc, DEFAULT_HOTKEY)
-        hotkey = DEFAULT_HOTKEY
+    hotkeys = raw.get("hotkey") if isinstance(raw.get("hotkey"), dict) else {}
 
     fade_raw = raw.get("fade") if isinstance(raw.get("fade"), dict) else {}
     sizes_raw = raw.get("sizes") if isinstance(raw.get("sizes"), dict) else {}
@@ -229,7 +239,9 @@ def settings_from_dict(raw: dict[str, Any]) -> Settings:
     ]
 
     return Settings(
-        toggle_hotkey=hotkey,
+        toggle_hotkey=_hotkey(hotkeys, "toggle_draw", DEFAULT_HOTKEY),
+        record_hotkey=_hotkey(hotkeys, "record_toggle", DEFAULT_RECORD_HOTKEY),
+        pause_hotkey=_hotkey(hotkeys, "record_pause", DEFAULT_PAUSE_HOTKEY),
         cover_all_screens=_flag(screens_raw.get("cover_all"), base.cover_all_screens),
         fade=Fade(
             enabled=_flag(fade_raw.get("enabled"), base.fade.enabled),
@@ -246,13 +258,18 @@ def settings_from_dict(raw: dict[str, Any]) -> Settings:
         ),
         keys=_keys_from(raw.get("keys")),
         keep_awake=_keep_awake_from(raw.get("keep_awake")),
+        recording=options_from_dict(raw.get("recording")),
     )
 
 
 def settings_to_dict(settings: Settings) -> dict[str, Any]:
     """Serialise in the same shape as ``config.sample.json``."""
     return {
-        "hotkey": {"toggle_draw": settings.toggle_hotkey},
+        "hotkey": {
+            "toggle_draw": settings.toggle_hotkey,
+            "record_toggle": settings.record_hotkey,
+            "record_pause": settings.pause_hotkey,
+        },
         "screens": {"cover_all": settings.cover_all_screens},
         "fade": {
             "enabled": settings.fade.enabled,
@@ -284,6 +301,7 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
             "interval_seconds": settings.keep_awake.interval_seconds,
             "distance_px": settings.keep_awake.distance_px,
         },
+        "recording": options_to_dict(settings.recording),
     }
 
 

@@ -11,6 +11,8 @@ import logging
 import sys
 from ctypes import wintypes
 
+from overmark.recording.monitors import Monitor
+
 log = logging.getLogger(__name__)
 
 IS_WINDOWS = sys.platform == "win32"
@@ -21,6 +23,7 @@ GWL_EXSTYLE = -20
 WS_EX_TRANSPARENT = 0x00000020
 WS_EX_LAYERED = 0x00080000
 WS_EX_NOACTIVATE = 0x08000000
+WDA_NONE = 0x00000000
 WDA_EXCLUDEFROMCAPTURE = 0x00000011
 HWND_TOPMOST = -1
 SWP_NOSIZE, SWP_NOMOVE, SWP_NOACTIVATE = 0x0001, 0x0002, 0x0010
@@ -43,6 +46,37 @@ class _MouseInput(ctypes.Structure):
         ("time", wintypes.DWORD),
         ("dwExtraInfo", ctypes.c_size_t),  # ULONG_PTR
     ]
+
+
+class _Guid(ctypes.Structure):
+    _fields_ = [
+        ("data1", ctypes.c_uint32),
+        ("data2", ctypes.c_uint16),
+        ("data3", ctypes.c_uint16),
+        ("data4", ctypes.c_ubyte * 8),
+    ]
+
+
+class _OutputDesc(ctypes.Structure):
+    """DXGI_OUTPUT_DESC."""
+
+    _fields_ = [
+        ("DeviceName", wintypes.WCHAR * 32),
+        ("DesktopCoordinates", wintypes.RECT),
+        ("AttachedToDesktop", wintypes.BOOL),
+        ("Rotation", ctypes.c_uint),
+        ("Monitor", wintypes.HMONITOR),
+    ]
+
+
+# IID_IDXGIFactory1 {770aae78-f26f-4dba-a829-253c83d1b387}
+_IID_DXGI_FACTORY1 = _Guid(
+    0x770AAE78, 0xF26F, 0x4DBA, (ctypes.c_ubyte * 8)(0xA8, 0x29, 0x25, 0x3C, 0x83, 0xD1, 0xB3, 0x87)
+)
+# COM vtable slots: IUnknown::Release, then IDXGIFactory::EnumAdapters,
+# IDXGIAdapter::EnumOutputs and IDXGIOutput::GetDesc, each the first method after
+# IUnknown's 3 and IDXGIObject's 4.
+_RELEASE, _ENUM_ADAPTERS, _ENUM_OUTPUTS, _OUTPUT_GET_DESC = 2, 7, 7, 7
 
 
 class _Input(ctypes.Structure):
@@ -73,6 +107,7 @@ if IS_WINDOWS:
     _user32.GetForegroundWindow.restype = wintypes.HWND
     _user32.SetForegroundWindow.argtypes = [wintypes.HWND]
     _user32.IsWindow.argtypes = [wintypes.HWND]
+    _user32.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
     _user32.SetWindowPos.argtypes = [
         wintypes.HWND,
         wintypes.HWND,
@@ -112,6 +147,19 @@ def exclude_from_capture(hwnd: int) -> bool:
     value = wintypes.DWORD()
     _user32.GetWindowDisplayAffinity(hwnd, ctypes.byref(value))
     return value.value == WDA_EXCLUDEFROMCAPTURE
+
+
+def set_capture_excluded(hwnd: int, excluded: bool) -> bool:
+    """Turn capture exclusion on or off for a window that is normally captured (the ink)."""
+    if not IS_WINDOWS:
+        return False
+    affinity = WDA_EXCLUDEFROMCAPTURE if excluded else WDA_NONE
+    if not _user32.SetWindowDisplayAffinity(hwnd, affinity):
+        log.warning("⚠️ SetWindowDisplayAffinity(%#x) failed (error %d)", affinity, _last_error())
+        return False
+    value = wintypes.DWORD()
+    _user32.GetWindowDisplayAffinity(hwnd, ctypes.byref(value))
+    return value.value == affinity
 
 
 def ex_style(hwnd: int) -> int:
@@ -194,3 +242,87 @@ def hotkey_id_from_msg(message: int) -> int:
         return -1
     msg = wintypes.MSG.from_address(message)
     return int(msg.wParam) if msg.message == WM_HOTKEY else -1
+
+
+def cursor_position() -> tuple[int, int] | None:
+    """The pointer in physical desktop pixels (the app is per-monitor DPI aware)."""
+    if not IS_WINDOWS:
+        return None
+    point = wintypes.POINT()
+    if not _user32.GetCursorPos(ctypes.byref(point)):
+        return None
+    return point.x, point.y
+
+
+def _com_call(obj: ctypes.c_void_p, slot: int, *argtypes):
+    vtable = ctypes.cast(obj, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+    return ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, *argtypes)(vtable[slot])
+
+
+def _release(obj: ctypes.c_void_p) -> None:
+    if obj:
+        _com_call(obj, _RELEASE)(obj)
+
+
+def _adapter_outputs(adapter: ctypes.c_void_p, adapter_no: int) -> list[Monitor]:
+    out_ptr = ctypes.POINTER(ctypes.c_void_p)
+    monitors = []
+    output_no = 0
+    while True:
+        output = ctypes.c_void_p()
+        enum_outputs = _com_call(adapter, _ENUM_OUTPUTS, ctypes.c_uint, out_ptr)
+        if enum_outputs(adapter, output_no, ctypes.byref(output)) != 0:
+            return monitors
+        desc = _OutputDesc()
+        get_desc = _com_call(output, _OUTPUT_GET_DESC, ctypes.POINTER(_OutputDesc))
+        ok = get_desc(output, ctypes.byref(desc)) == 0
+        _release(output)
+        rect = desc.DesktopCoordinates
+        if ok and desc.AttachedToDesktop:
+            monitors.append(
+                Monitor(
+                    name=desc.DeviceName,
+                    x=rect.left,
+                    y=rect.top,
+                    width=rect.right - rect.left,
+                    height=rect.bottom - rect.top,
+                    dda_index=output_no if adapter_no == 0 else None,
+                )
+            )
+        output_no += 1
+
+
+def display_outputs() -> list[Monitor]:
+    """Every desktop output, in DXGI order, with its position in physical pixels.
+
+    ffmpeg's ``ddagrab`` numbers the default adapter's outputs in this same order, so
+    an output of adapter 0 gets its ``dda_index``; outputs on other adapters get None.
+    """
+    if not IS_WINDOWS:
+        return []
+    try:
+        dxgi = ctypes.WinDLL("dxgi")
+    except OSError:
+        log.warning("⚠️ dxgi.dll not available; monitors unknown")
+        return []
+    factory = ctypes.c_void_p()
+    if dxgi.CreateDXGIFactory1(ctypes.byref(_IID_DXGI_FACTORY1), ctypes.byref(factory)) != 0:
+        log.warning("⚠️ CreateDXGIFactory1 failed; monitors unknown")
+        return []
+    monitors: list[Monitor] = []
+    try:
+        adapter_no = 0
+        while True:
+            adapter = ctypes.c_void_p()
+            enum_adapters = _com_call(
+                factory, _ENUM_ADAPTERS, ctypes.c_uint, ctypes.POINTER(ctypes.c_void_p)
+            )
+            if enum_adapters(factory, adapter_no, ctypes.byref(adapter)) != 0:
+                return monitors
+            try:
+                monitors += _adapter_outputs(adapter, adapter_no)
+            finally:
+                _release(adapter)
+            adapter_no += 1
+    finally:
+        _release(factory)

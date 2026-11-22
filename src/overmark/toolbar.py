@@ -33,7 +33,7 @@ _FLAGS = (
 )
 
 
-class _CaptureHidden(QWidget):
+class CaptureHidden(QWidget):
     """A top-most window that never takes focus and never appears in a capture."""
 
     def __init__(self) -> None:
@@ -78,7 +78,7 @@ class _Swatch(QToolButton):
         painter.drawEllipse(centre, r, r)
 
 
-class Toolbar(_CaptureHidden):
+class Toolbar(CaptureHidden):
     settings_requested = Signal()
 
     def __init__(self, controller: Controller) -> None:
@@ -231,7 +231,7 @@ class Toolbar(_CaptureHidden):
         painter.drawRoundedRect(rect, radius, radius)
 
 
-class CheatSheet(_CaptureHidden):
+class CheatSheet(CaptureHidden):
     """The key list, opened from the toolbar or with ``?``; any click closes it."""
 
     def __init__(self, controller: Controller) -> None:
@@ -256,8 +256,12 @@ class CheatSheet(_CaptureHidden):
         heading = QLabel("Overmark keys")
         heading.setObjectName("heading")
         grid.addWidget(heading, 0, 0, 1, 2)
-        hotkey = self.controller.settings.toggle_hotkey.upper()
-        rows = [(hotkey, "Toggle drawing (anywhere)")]
+        settings = self.controller.settings
+        rows = [
+            (settings.toggle_hotkey.upper(), "Toggle drawing (anywhere)"),
+            (settings.record_hotkey.upper(), "Start / stop recording (anywhere)"),
+            (settings.pause_hotkey.upper(), "Pause / resume recording (anywhere)"),
+        ]
         rows += [
             (combo.upper(), ACTION_LABELS[a])
             for a, combo in self.controller.keymap.bindings.items()

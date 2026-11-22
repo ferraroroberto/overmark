@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections.abc import Callable
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -19,29 +20,39 @@ from overmark.controller import Controller
 from overmark.keepawake import POLL_MS, KeepAwakeEngine
 from overmark.keymap import parse_hotkey
 from overmark.overlay import OverlayWindow, screen_under_cursor
+from overmark.recording.controls import RecordingControls, list_microphones
+from overmark.recording.monitors import describe
+from overmark.recording.segments import State
 from overmark.settings_dialog import SettingsDialog
 from overmark.toolbar import CheatSheet, Toolbar
 
 log = logging.getLogger(__name__)
 
-HOTKEY_ID = 0x4F4D  # any id unique within this process
+# Any ids unique within this process.
+DRAW_HOTKEY_ID = 0x4F4D
+RECORD_HOTKEY_ID = 0x4F4E
+PAUSE_HOTKEY_ID = 0x4F4F
+HOTKEY_LABELS = {
+    DRAW_HOTKEY_ID: "Draw",
+    RECORD_HOTKEY_ID: "Start/stop recording",
+    PAUSE_HOTKEY_ID: "Pause recording",
+}
 ARMED_BADGE = "#1a7f37"  # fleet success green, readable on the accent circle
 
 
 class HotkeyFilter(QAbstractNativeEventFilter):
-    """Delivers WM_HOTKEY for our id to a callback."""
+    """Delivers WM_HOTKEY for each of our ids to its callback."""
 
-    def __init__(self, callback) -> None:
+    def __init__(self, callbacks: dict[int, Callable[[], None]]) -> None:
         super().__init__()
-        self._callback = callback
+        self._callbacks = callbacks
 
     def nativeEventFilter(self, event_type, message):  # noqa: N802 (Qt override)
-        if (
-            event_type == b"windows_generic_MSG"
-            and win32.hotkey_id_from_msg(int(message)) == HOTKEY_ID
-        ):
-            self._callback()
-            return True, 0
+        if event_type == b"windows_generic_MSG":
+            callback = self._callbacks.get(win32.hotkey_id_from_msg(int(message)))
+            if callback is not None:
+                callback()
+                return True, 0
         return False, 0
 
 
@@ -76,9 +87,19 @@ class OvermarkApp:
         self.cheat_sheet = CheatSheet(self.controller)
         self.settings_dialog: SettingsDialog | None = None
         self._previous_foreground = 0
-        self._hotkey_registered: str | None = None
+        self._hotkeys: dict[int, str] = {}  # id to the combo registered for it
 
-        self.hotkey_filter = HotkeyFilter(self.controller.toggle_draw)
+        self.recording = RecordingControls(lambda: self.controller.settings, self.hide_ink)
+        self.recording.notify.connect(lambda text: self.tray.showMessage("Overmark", text))
+        self.recording.state_changed.connect(self._update_menu)
+
+        self.hotkey_filter = HotkeyFilter(
+            {
+                DRAW_HOTKEY_ID: self.controller.toggle_draw,
+                RECORD_HOTKEY_ID: self.recording.toggle,
+                PAUSE_HOTKEY_ID: self.recording.toggle_pause,
+            }
+        )
         qapp.installNativeEventFilter(self.hotkey_filter)
 
         self.keep_awake = KeepAwakeEngine(
@@ -111,12 +132,13 @@ class OvermarkApp:
         self.rebuild_overlays()
         self.toolbar.show()
         self.tray.show()
-        if not self.register_hotkey(self.controller.settings.toggle_hotkey):
-            self.tray.showMessage(
-                "Overmark",
-                f"The draw hotkey {self.controller.settings.toggle_hotkey.upper()} is taken; "
-                "pick another in Settings.",
-            )
+        for hotkey_id, combo in self.wanted_hotkeys(self.controller.settings).items():
+            if not self.register_hotkey(hotkey_id, combo):
+                self.tray.showMessage(
+                    "Overmark",
+                    f"The {HOTKEY_LABELS[hotkey_id].lower()} hotkey {combo.upper()} is taken; "
+                    "pick another in Settings.",
+                )
         log.info("✅ Overmark running on %d screen(s)", len(self.overlays))
         return True
 
@@ -134,6 +156,8 @@ class OvermarkApp:
         self.overlays = [OverlayWindow(self.controller, s) for s in self.screens()]
         for overlay in self.overlays:
             overlay.show()
+            if self.recording.ink_hidden:
+                win32.set_capture_excluded(overlay.hwnd(), True)
         self.toolbar.raise_above_overlays()
         log.info(
             "ℹ️ overlays on %s",
@@ -155,26 +179,44 @@ class OvermarkApp:
             self.toolbar.raise_above_overlays()
             self.cheat_sheet.raise_above_overlays()
 
+    def hide_ink(self, hidden: bool) -> None:
+        """Take the ink out of the capture (or back in) for the length of a recording."""
+        for overlay in self.overlays:
+            if not win32.set_capture_excluded(overlay.hwnd(), hidden):
+                log.warning("⚠️ ink capture exclusion not confirmed on one screen")
+        log.info("ℹ️ ink %s the recording", "hidden from" if hidden else "back in")
+
     def restore_focus(self) -> None:
         if self._previous_foreground:
             win32.set_foreground(self._previous_foreground)
 
     # ----- hotkey -------------------------------------------------------------------
 
-    def register_hotkey(self, combo: str) -> bool:
+    @staticmethod
+    def wanted_hotkeys(settings: Settings) -> dict[int, str]:
+        return {
+            DRAW_HOTKEY_ID: settings.toggle_hotkey,
+            RECORD_HOTKEY_ID: settings.record_hotkey,
+            PAUSE_HOTKEY_ID: settings.pause_hotkey,
+        }
+
+    def register_hotkey(self, hotkey_id: int, combo: str) -> bool:
+        label = HOTKEY_LABELS[hotkey_id]
         try:
             modifiers, vk = parse_hotkey(combo)
         except ValueError as exc:
-            log.error("❌ draw hotkey %r invalid: %s", combo, exc)
+            log.error("❌ %s hotkey %r invalid: %s", label, combo, exc)
             return False
-        if self._hotkey_registered:
-            win32.unregister_hotkey(HOTKEY_ID)
-            self._hotkey_registered = None
-        if not win32.register_hotkey(HOTKEY_ID, modifiers, vk):
+        self.unregister_hotkey(hotkey_id)
+        if not win32.register_hotkey(hotkey_id, modifiers, vk):
             return False
-        self._hotkey_registered = combo
-        log.info("✅ draw hotkey %s registered", combo)
+        self._hotkeys[hotkey_id] = combo
+        log.info("✅ %s hotkey %s registered", label, combo)
         return True
+
+    def unregister_hotkey(self, hotkey_id: int) -> None:
+        if self._hotkeys.pop(hotkey_id, None) is not None:
+            win32.unregister_hotkey(hotkey_id)
 
     # ----- settings -------------------------------------------------------------------
 
@@ -183,19 +225,34 @@ class OvermarkApp:
             self.settings_dialog.raise_()
             return
         self.controller.set_drawing(False)
-        self.settings_dialog = SettingsDialog(self.controller.settings, self.apply_settings)
+        self.settings_dialog = SettingsDialog(
+            self.controller.settings,
+            self.apply_settings,
+            list_microphones=list_microphones,
+            screen_labels=describe(win32.display_outputs()),
+        )
         self.settings_dialog.show()
         self.settings_dialog.activateWindow()
 
     def apply_settings(self, new: Settings) -> str | None:
         """Apply and persist; return an error message (and change nothing) on failure."""
         old = self.controller.settings
-        if new.toggle_hotkey != self._hotkey_registered and not self.register_hotkey(
-            new.toggle_hotkey
-        ):
-            if old.toggle_hotkey:
-                self.register_hotkey(old.toggle_hotkey)
-            return f"{new.toggle_hotkey.upper()} is already used by another application."
+        changed = {
+            hotkey_id: combo
+            for hotkey_id, combo in self.wanted_hotkeys(new).items()
+            if self._hotkeys.get(hotkey_id) != combo
+        }
+        # Release every changed combo first, so two of our hotkeys can swap keys.
+        for hotkey_id in changed:
+            self.unregister_hotkey(hotkey_id)
+        for hotkey_id, combo in changed.items():
+            if not self.register_hotkey(hotkey_id, combo):
+                for undo_id in changed:
+                    self.unregister_hotkey(undo_id)
+                for undo_id, old_combo in self.wanted_hotkeys(old).items():
+                    if undo_id in changed:
+                        self.register_hotkey(undo_id, old_combo)
+                return f"{combo.upper()} is already used by another application."
         screens_changed = new.cover_all_screens != old.cover_all_screens
         self.controller.apply_settings(new)
         if screens_changed:
@@ -231,6 +288,12 @@ class OvermarkApp:
         self.awake_action = QAction("Keep display awake", menu, checkable=True)
         self.awake_action.triggered.connect(lambda _c: self.controller.toggle_keep_awake())
         menu.addAction(self.awake_action)
+        self.record_action = QAction("Start recording", menu)
+        self.record_action.triggered.connect(lambda _c: self.recording.toggle())
+        menu.addAction(self.record_action)
+        self.pause_action = QAction("Pause recording", menu)
+        self.pause_action.triggered.connect(lambda _c: self.recording.toggle_pause())
+        menu.addAction(self.pause_action)
         menu.addAction("Cheat-sheet", self.cheat_sheet.toggle)
         menu.addAction("Settings…", self.open_settings)
         menu.addSeparator()
@@ -244,6 +307,18 @@ class OvermarkApp:
             self.draw_action.setChecked(self.controller.drawing)
             self.draw_action.setText(f"Draw ({self.controller.settings.toggle_hotkey.upper()})")
             self.awake_action.setChecked(self.controller.settings.keep_awake.enabled)
+            settings = self.controller.settings
+            state = self.recording.state
+            idle = state is State.IDLE
+            self.record_action.setText(
+                f"{'Start' if idle else 'Stop'} recording ({settings.record_hotkey.upper()})"
+            )
+            self.record_action.setEnabled(not self.recording.busy)
+            self.pause_action.setText(
+                f"{'Resume' if state is State.PAUSED else 'Pause'} recording "
+                f"({settings.pause_hotkey.upper()})"
+            )
+            self.pause_action.setEnabled(not idle and not self.recording.busy)
 
     def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
@@ -252,7 +327,9 @@ class OvermarkApp:
     def quit(self) -> None:
         self._awake_timer.stop()
         self.keep_awake.release()
-        win32.unregister_hotkey(HOTKEY_ID)
+        self.recording.shutdown()
+        for hotkey_id in list(self._hotkeys):
+            self.unregister_hotkey(hotkey_id)
         self.tray.hide()
         self.qapp.quit()
 

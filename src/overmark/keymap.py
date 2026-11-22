@@ -99,6 +99,35 @@ class KeyMap:
             return None
 
 
+def hotkey_clashes(hotkeys: dict[str, str], draw_keys: dict[str, str]) -> list[str]:
+    """Messages for global hotkeys that share a combo, or that take a key used while drawing.
+
+    ``hotkeys`` maps a label (``"Draw"``) to its combo; ``draw_keys`` is the in-draw key
+    map. A global hotkey wins over the overlay, so a shared combo silently disables one.
+    """
+    problems = []
+    seen: dict[str, str] = {}
+    in_draw = {}
+    for action, combo in draw_keys.items():
+        try:
+            in_draw[normalize_combo(combo)] = action
+        except ValueError:
+            continue
+    for label, combo in hotkeys.items():
+        try:
+            key = normalize_combo(combo)
+        except ValueError:
+            continue  # validity is reported by parse_hotkey, not here
+        if key in seen:
+            problems.append(f"{seen[key]} and {label} both use {key.upper()}")
+        else:
+            seen[key] = label
+        if key in in_draw:
+            action = ACTION_LABELS.get(in_draw[key], in_draw[key])
+            problems.append(f"{label} uses {key.upper()}, the in-draw key for {action}")
+    return problems
+
+
 def _virtual_key(key: str) -> int | None:
     if len(key) == 1 and key.isascii() and key.isalnum():
         return ord(key.upper())
