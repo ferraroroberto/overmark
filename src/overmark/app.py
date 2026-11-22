@@ -15,6 +15,8 @@ from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from overmark import config as config_mod
 from overmark import icons, theme, win32
+from overmark._vendored.single_instance import SingleInstance
+from overmark.buildprobe import VersionServer, read_git_sha
 from overmark.config import Settings
 from overmark.controller import Controller
 from overmark.keepawake import POLL_MS, KeepAwakeEngine
@@ -27,6 +29,11 @@ from overmark.settings_dialog import SettingsDialog
 from overmark.toolbar import CheatSheet, Toolbar
 
 log = logging.getLogger(__name__)
+
+# The checkout root (src/overmark/app.py is two levels below it); the build probe reads its HEAD.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+# Session-wide named mutex behind the single-instance guard.
+INSTANCE_MUTEX = "Global\\overmark-tray"
 
 # Any ids unique within this process.
 DRAW_HOTKEY_ID = 0x4F4D
@@ -392,7 +399,16 @@ def main(argv: list[str] | None = None) -> int:
         sys.stderr.reconfigure(encoding="utf-8")
     log.info("ℹ️ logging to %s", log_file.name)
 
+    # Held for the life of the process: the OS drops the name when the process ends.
+    guard = SingleInstance(INSTANCE_MUTEX)
+    if not guard.acquired:
+        log.warning("⚠️ Overmark is already running; this second start stands down")
+        return 0
+
     settings = config_mod.load(args.config)
     app = OvermarkApp(qapp, settings, args.config)
     app.start()
+    probe = VersionServer(read_git_sha(REPO_ROOT))
+    probe.start()
+    qapp.aboutToQuit.connect(probe.stop)
     return qapp.exec()

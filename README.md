@@ -78,9 +78,13 @@ H.264 uses the first hardware encoder that passes a one-frame test (NVIDIA, Inte
 ## Run
 
 ```powershell
-powershell -File scripts/run.ps1            # tray app, no console
-powershell -File scripts/run.ps1 -Console   # with the log in the console
+.	ray.bat             # start the tray app, no console; a second start does nothing
+.	ray.bat --restart   # stop the running instance, start a fresh one, confirm the new build
+.	ray.bat -r          # same
+powershell -File scripts/run.ps1 -Console   # run in the console with the log, for debugging
 ```
+
+`tray.bat` is the standard fleet tray launcher: it stops by process id (never a blanket kill) and needs the shared tray helper from `fleet-config`'s `install.ps1` for `--restart`; a plain start works without it. The tray holds a session-wide single-instance mutex, so a second copy exits at once. Overmark has no web app, so the tray also answers `GET http://127.0.0.1:8467/api/version` (loopback only, read-only: the commit it loaded and its process id); `--restart` reads that before and after and fails unless a new process serves the checkout's `HEAD`. `scripts/run.ps1` without `-Console` calls `tray.bat`. To start Overmark at log-on, point a Startup shortcut at `tray.bat`, or register it in the app launcher (a scan of this folder recognises `tray.bat` as a tray).
 
 ## Verify
 
