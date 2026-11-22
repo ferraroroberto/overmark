@@ -12,6 +12,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from overmark.keepawake import (
+    KeepAwake,
+    parse_distance,
+    parse_interval,
+    parse_mode,
+)
 from overmark.keymap import DEFAULT_KEYS, normalize_combo, parse_hotkey
 
 log = logging.getLogger(__name__)
@@ -85,6 +91,7 @@ class Settings:
     presets: list[Preset] = field(default_factory=default_presets)
     sizes: Sizes = field(default_factory=Sizes)
     keys: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_KEYS))
+    keep_awake: KeepAwake = field(default_factory=KeepAwake)
 
 
 def _is_hex_color(value: Any) -> bool:
@@ -170,6 +177,30 @@ def _keys_from(raw: Any) -> dict[str, str]:
     return keys
 
 
+def _keep_awake_from(raw: Any) -> KeepAwake:
+    base = KeepAwake()
+    if not isinstance(raw, dict):
+        return base
+
+    def checked(parse, key: str, default):
+        if key not in raw:
+            return default
+        try:
+            return parse(raw[key])
+        except ValueError as exc:
+            log.warning(
+                "⚠️ config: keep_awake.%s=%r invalid (%s); using %s", key, raw[key], exc, default
+            )
+            return default
+
+    return KeepAwake(
+        enabled=_flag(raw.get("enabled"), base.enabled),
+        mode=checked(parse_mode, "mode", base.mode),
+        interval_seconds=checked(parse_interval, "interval_seconds", base.interval_seconds),
+        distance_px=checked(parse_distance, "distance_px", base.distance_px),
+    )
+
+
 def settings_from_dict(raw: dict[str, Any]) -> Settings:
     """Build settings from parsed JSON, falling back to defaults key by key."""
     base = Settings()
@@ -214,6 +245,7 @@ def settings_from_dict(raw: dict[str, Any]) -> Settings:
             laser_halo_px=_number(sizes_raw.get("laser_halo_px"), 6.0, 0, 40, "laser_halo_px"),
         ),
         keys=_keys_from(raw.get("keys")),
+        keep_awake=_keep_awake_from(raw.get("keep_awake")),
     )
 
 
@@ -246,6 +278,12 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
             "laser_halo_px": settings.sizes.laser_halo_px,
         },
         "keys": dict(settings.keys),
+        "keep_awake": {
+            "enabled": settings.keep_awake.enabled,
+            "mode": settings.keep_awake.mode,
+            "interval_seconds": settings.keep_awake.interval_seconds,
+            "distance_px": settings.keep_awake.distance_px,
+        },
     }
 
 

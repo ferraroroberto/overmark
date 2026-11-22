@@ -1,4 +1,4 @@
-"""Settings: draw hotkey, fading, and the seven presets."""
+"""Settings: draw hotkey, fading, keep-awake, and the seven presets."""
 
 from __future__ import annotations
 
@@ -27,6 +27,15 @@ from PySide6.QtWidgets import (
 
 from overmark import theme, win32
 from overmark.config import MAX_TRANSPARENCY_PERCENT, Settings
+from overmark.keepawake import (
+    MAX_DISTANCE_PX,
+    MIN_INTERVAL_S,
+    MODE_EXECUTION_STATE,
+    MODE_NUDGE,
+    QUICK_INTERVALS,
+    KeepAwake,
+    parse_interval,
+)
 from overmark.keymap import normalize_combo, parse_hotkey
 
 log = logging.getLogger(__name__)
@@ -82,6 +91,33 @@ class SettingsDialog(QDialog):
         fade_form.addRow(self.fade_enabled)
         fade_form.addRow("Delay", self.fade_delay)
         root.addWidget(fade_box)
+
+        awake_box = QGroupBox("Keep display awake")
+        awake_form = QFormLayout(awake_box)
+        awake = settings.keep_awake
+        self.awake_enabled = QCheckBox("Keep the screen on during long sessions")
+        self.awake_enabled.setChecked(awake.enabled)
+        self.awake_mode = QComboBox()
+        self.awake_mode.addItem("Ask Windows to keep the display on", MODE_EXECUTION_STATE)
+        self.awake_mode.addItem("Nudge the pointer", MODE_NUDGE)
+        self.awake_mode.setCurrentIndex(max(self.awake_mode.findData(awake.mode), 0))
+        self.awake_interval = QComboBox()
+        self.awake_interval.setEditable(True)
+        for seconds in QUICK_INTERVALS:
+            self.awake_interval.addItem(str(seconds))
+        self.awake_interval.setCurrentText(str(awake.interval_seconds))
+        self.awake_distance = QSpinBox()
+        self.awake_distance.setRange(1, MAX_DISTANCE_PX)
+        self.awake_distance.setSuffix(" px")
+        self.awake_distance.setValue(awake.distance_px)
+        awake_form.addRow(self.awake_enabled)
+        awake_form.addRow("Method", self.awake_mode)
+        awake_form.addRow(f"Nudge after idle (s, {MIN_INTERVAL_S} or more)", self.awake_interval)
+        awake_form.addRow("Nudge distance", self.awake_distance)
+        for nudge_only in (self.awake_interval, self.awake_distance):
+            nudge_only.setEnabled(awake.mode == MODE_NUDGE)
+        self.awake_mode.currentIndexChanged.connect(self._sync_awake_fields)
+        root.addWidget(awake_box)
 
         preset_box = QGroupBox("Presets")
         preset_form = QFormLayout(preset_box)
@@ -156,6 +192,11 @@ class SettingsDialog(QDialog):
         super().showEvent(event)
         win32.exclude_from_capture(int(self.winId()))
 
+    def _sync_awake_fields(self) -> None:
+        nudge = self.awake_mode.currentData() == MODE_NUDGE
+        self.awake_interval.setEnabled(nudge)
+        self.awake_distance.setEnabled(nudge)
+
     # ----- presets -------------------------------------------------------------
 
     def _fill_preset_names(self) -> None:
@@ -217,9 +258,20 @@ class SettingsDialog(QDialog):
         except ValueError as exc:
             self._show_error(f"Draw hotkey: {exc}.")
             return
+        try:
+            interval = parse_interval(self.awake_interval.currentText())
+        except ValueError as exc:
+            self._show_error(f"Keep-awake: {exc}. The previous value is kept.")
+            return
         self.draft.toggle_hotkey = combo
         self.draft.fade.enabled = self.fade_enabled.isChecked()
         self.draft.fade.delay_seconds = self.fade_delay.value()
+        self.draft.keep_awake = KeepAwake(
+            enabled=self.awake_enabled.isChecked(),
+            mode=str(self.awake_mode.currentData()),
+            interval_seconds=interval,
+            distance_px=self.awake_distance.value(),
+        )
         problem = self._apply(copy.deepcopy(self.draft))
         if problem:
             self._show_error(problem)

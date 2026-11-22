@@ -132,6 +132,12 @@ class Toolbar(_CaptureHidden):
             ("↶", "Undo (Ctrl+Z)", controller.undo),
             ("⌫", "Clear (E)", controller.clear),
             ("📌", "Pin ink so it stops fading (F)", controller.pin),
+        ):
+            panel_row.addWidget(self._button(glyph, tip, slot))
+        self.awake_button = self._button("☀", "", controller.toggle_keep_awake)
+        self.awake_button.setCheckable(True)
+        panel_row.addWidget(self.awake_button)
+        for glyph, tip, slot in (
             ("?", "Cheat-sheet (?)", controller.cheat_sheet_requested.emit),
             ("⚙", "Settings", self.settings_requested.emit),
         ):
@@ -169,8 +175,12 @@ class Toolbar(_CaptureHidden):
             swatch.selected = swatch.index == c.cycler.index
             swatch.setToolTip(f"{swatch.index + 1}: {preset.name}")
             swatch.update()
+        armed = c.settings.keep_awake.enabled
+        self.awake_button.setChecked(armed)
+        self.awake_button.setToolTip(f"Keep display awake: {'on' if armed else 'off'}")
         self.handle.setToolTip(
             f"Overmark: {c.settings.toggle_hotkey.upper()} toggles drawing; hover to expand"
+            + ("; keep-awake on" if armed else "")
         )
         self._place()
 
