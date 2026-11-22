@@ -108,6 +108,12 @@
     "laser_dot_px": 18.0,
     "laser_halo_px": 6.0
   },
+  "keep_awake": {
+    "enabled": false,
+    "mode": "execution_state",
+    "interval_seconds": 60,
+    "distance_px": 1
+  },
   "keys": {
     "pen": "p",
     "highlighter": "h",

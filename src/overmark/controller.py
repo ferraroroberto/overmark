@@ -93,6 +93,17 @@ class Controller(QObject):
         if not on and not hold_focus:
             self.restore_focus_requested.emit()
 
+    @property
+    def input_in_progress(self) -> bool:
+        """A stroke is being drawn, a label typed or the laser held: the pointer must stay put."""
+        return self._active is not None or self.editing is not None or self.laser_active
+
+    def toggle_keep_awake(self) -> None:
+        """Flip keep-awake on or off from the tray or toolbar and persist it."""
+        self.settings.keep_awake.enabled = not self.settings.keep_awake.enabled
+        config_mod.save(self.settings, self.config_path)
+        self.settings_changed.emit()
+
     # ----- tools and presets ------------------------------------------------------
 
     def set_tool(self, tool: Tool) -> None:

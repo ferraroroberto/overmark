@@ -15,6 +15,7 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - Fading is a setting: on or off plus a delay in seconds; strokes then ease out over about 0.6 s. `F` pins the ink on screen so it stops fading.
 - The toolbar (a pill that collapses to a small handle and expands on hover), the cheat-sheet and the settings window are excluded from screen capture.
 - Compression-safe defaults: widths in capture pixels (pen 6, highlighter 28, text 32, laser dot 18 with a 6 px halo), a dark outline on every stroke (a light one on dark ink), and a brightness-first palette with no pure red or blue.
+- Keep-awake, off by default, for presentations and long sessions: a tray item and a toolbar button (☀) toggle it, the tray icon gets a green badge while it is armed. The default method asks Windows to keep the display on, so the pointer never moves; the alternative nudges the pointer 1 px and back after a whole interval of inactivity, and never while a stroke is drawn, a label typed or the laser held.
 - Mouse, touch and pen share one input path; pen pressure varies the width and the pen's eraser end (or barrel button) erases whole strokes.
 
 ## Keys while drawing
@@ -43,6 +44,10 @@ Keys reach the app only while drawing, so they never collide with the applicatio
 | `fade.enabled`, `fade.delay_seconds` | fading on or off, and the delay before a stroke fades |
 | `presets` | the seven presets: `color` (`#RRGGBB`), `thickness_px`, `transparency` (`enabled`, `percent`), `outline` (`enabled`, `thickness_px`) |
 | `sizes` | highlighter, text and laser sizes in capture pixels |
+| `keep_awake.enabled` | keep the display awake (default `false`) |
+| `keep_awake.mode` | `execution_state` (ask Windows, pointer untouched; default) or `nudge` (move the pointer and back) |
+| `keep_awake.interval_seconds` | nudge mode: idle seconds before a nudge, 5 to 3600 (default 60; Settings offers 30 and 60 or a free value) |
+| `keep_awake.distance_px` | nudge mode: pixels moved out and back, 1 to 20 (default 1) |
 | `keys` | the in-draw key for each action |
 
 Invalid values fall back to the default for that key, with a warning in the log. The log is `overmark.log` in the app's local data folder (`%LOCALAPPDATA%\Overmark\Overmark`), one line per drawing session.
