@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "band": {"files": 0, "functions": 1},
+  "entries": [
+    {"key": "fn:src/overmark/settings_dialog.py:SettingsDialog.__init__", "lines": 157},
+    {"key": "fn:src/overmark/settings_dialog.py:SettingsDialog._recording_tab", "lines": 132}
+  ]
+}

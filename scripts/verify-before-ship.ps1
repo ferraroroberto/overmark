@@ -4,7 +4,8 @@
     Pre-ship verification gate. One pass/fail pipeline, fail-fast.
 
 .DESCRIPTION
-    Stages: byte-compile (src, tests), ruff lint, pytest. Run from the repo root with
+    Stages: byte-compile (src, tests), ruff lint, then run_ratchets.py (every enabled
+    ratchet, then pytest and the runtime write probe). Run from the repo root with
     the repo's own .venv; nothing is activated.
 #>
 $ErrorActionPreference = 'Stop'
@@ -20,5 +21,6 @@ function Invoke-Stage([string]$Name, [scriptblock]$Body) {
 
 Invoke-Stage 'byte-compile' { & $py -m compileall -q src tests }
 Invoke-Stage 'ruff' { & $py -m ruff check . }
-Invoke-Stage 'pytest' { & $py -m pytest -q }
+# Exit 3 from a ratchet means not confirmed; the runner reports it and fails, never passes.
+Invoke-Stage 'ratchets and pytest' { & $py scripts/run_ratchets.py --tests $py -m pytest -q }
 Write-Host 'GATE-RESULT: PASS'

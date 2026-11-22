@@ -8,7 +8,7 @@
 | `docs/` | durable reference (this file, design records) |
 | `config.sample.json` | committed settings template; the live `config.json` is git-ignored |
 
-`_vendored/icons/icons-sprite.html` is the Lucide sprite from project-scaffolding's icon component, and `_vendored/single_instance.py` its Windows single-instance primitive, both copied byte-for-byte (pinned in `.fleet.toml` `[vendored]`); never edit them here. `tray.bat` at the root is project-scaffolding's `tray.bat.template` with its four tokens filled (plus one `PYTHONPATH` line, because the package is not pip-installed).
+`_vendored/icons/icons-sprite.html` is the Lucide sprite from project-scaffolding's icon component, and `_vendored/single_instance.py` its Windows single-instance primitive, both copied byte-for-byte (pinned in `.fleet.toml` `[vendored]`); never edit them here. The same holds for the ratchet scripts and their `run_ratchets.py` runner in `scripts/` (each with its `.<name>-ratchet-baseline.json` at the root) and for `tests/host/_synthetic_host.py`, the fixture that fakes the account name, home folder and interpreter path for tests; ruff skips these copies (`extend-exclude` in `pyproject.toml`). `tray.bat` at the root is project-scaffolding's `tray.bat.template` with its four tokens filled (plus one `PYTHONPATH` line, because the package is not pip-installed).
 
 New code goes under `src/overmark/` in a subject subfolder as it grows; tests mirror it under `tests/`.
 

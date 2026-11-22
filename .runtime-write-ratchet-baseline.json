@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "entries": [
+    {"key": "src/overmark/app.py", "counts": {"unresolved": 2}},
+    {"key": "src/overmark/config.py", "counts": {"unresolved": 2}},
+    {"key": "src/overmark/recording/controls.py", "counts": {"unresolved": 1}},
+    {"key": "src/overmark/recording/session.py", "counts": {"unresolved": 2}}
+  ]
+}
