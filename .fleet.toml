@@ -2,3 +2,6 @@ layer       = "enabling"
 icon        = "🖍️"
 description = "Screen annotation for live facilitation, with the controls hidden from capture."
 depends_on  = ["project-scaffolding"]
+
+[vendored]
+icons = { src = "app/webapp/static/_vendored/icons", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/_vendored/icons" }

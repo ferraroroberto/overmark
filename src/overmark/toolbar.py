@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from overmark import theme, win32
+from overmark import icons, theme, win32
 from overmark.controller import Controller
 from overmark.keymap import ACTION_LABELS
 from overmark.strokes import Tool
@@ -58,9 +58,9 @@ class _Swatch(QToolButton):
     def __init__(self, index: int) -> None:
         super().__init__()
         self.index = index
-        self.color = QColor("#ffffff")
+        self.color = QColor()  # the preset's ink colour, set by Toolbar.refresh
         self.selected = False
-        self.setFixedSize(QSize(30, 36))
+        self.setFixedSize(QSize(theme.HIT_TARGET, theme.HIT_TARGET))
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt override)
@@ -93,28 +93,35 @@ class Toolbar(CaptureHidden):
         self._collapse_timer.timeout.connect(self.collapse)
 
         row = QHBoxLayout(self)
-        row.setContentsMargins(8, 4, 8, 4)
-        row.setSpacing(2)
+        row.setContentsMargins(theme.SPACE_SM, theme.SPACE_XS, theme.SPACE_SM, theme.SPACE_XS)
+        row.setSpacing(0)
 
-        self.handle = self._button("✎", "Overmark: hover or click to expand", self.expand)
+        self._glyphs: dict[QToolButton, str] = {}
+        self.handle = self._button(
+            theme.BRAND_GLYPH, "Overmark: hover or click to expand", self.expand
+        )
         row.addWidget(self.handle)
 
         self.panel = QWidget()
         panel_row = QHBoxLayout(self.panel)
         panel_row.setContentsMargins(0, 0, 0, 0)
-        panel_row.setSpacing(2)
-        self.draw_button = self._button("Draw", "Toggle drawing", controller.toggle_draw)
+        panel_row.setSpacing(0)
+        self.draw_button = QToolButton()
+        self.draw_button.setText("Draw")
+        self.draw_button.setToolTip("Toggle drawing")
+        self.draw_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.draw_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.draw_button.clicked.connect(controller.toggle_draw)
         self.draw_button.setObjectName("drawToggle")
         self.draw_button.setCheckable(True)
-        self.draw_button.setMinimumWidth(56)
         panel_row.addWidget(self.draw_button)
 
         self.tool_buttons: dict[Tool, QToolButton] = {}
         for tool, glyph, tip in (
-            (Tool.PEN, "✏", "Pen (P)"),
-            (Tool.HIGHLIGHTER, "▮", "Highlighter (H)"),
-            (Tool.ARROW, "➚", "Arrow (A)"),
-            (Tool.TEXT, "T", "Text label (T)"),
+            (Tool.PEN, "pencil", "Pen (P)"),
+            (Tool.HIGHLIGHTER, "highlighter", "Highlighter (H)"),
+            (Tool.ARROW, "arrow-up-right", "Arrow (A)"),
+            (Tool.TEXT, "type", "Text label (T)"),
         ):
             button = self._button(glyph, tip, lambda _=False, t=tool: controller.set_tool(t))
             button.setCheckable(True)
@@ -129,17 +136,17 @@ class Toolbar(CaptureHidden):
             panel_row.addWidget(swatch)
 
         for glyph, tip, slot in (
-            ("↶", "Undo (Ctrl+Z)", controller.undo),
-            ("⌫", "Clear (E)", controller.clear),
-            ("📌", "Pin ink so it stops fading (F)", controller.pin),
+            ("rotate-ccw", "Undo (Ctrl+Z)", controller.undo),
+            ("trash-2", "Clear (E)", controller.clear),
+            ("pin", "Pin ink so it stops fading (F)", controller.pin),
         ):
             panel_row.addWidget(self._button(glyph, tip, slot))
-        self.awake_button = self._button("☀", "", controller.toggle_keep_awake)
+        self.awake_button = self._button("sun", "", controller.toggle_keep_awake)
         self.awake_button.setCheckable(True)
         panel_row.addWidget(self.awake_button)
         for glyph, tip, slot in (
-            ("?", "Cheat-sheet (?)", controller.cheat_sheet_requested.emit),
-            ("⚙", "Settings", self.settings_requested.emit),
+            ("keyboard", "Cheat-sheet (?)", controller.cheat_sheet_requested.emit),
+            ("settings", "Settings", self.settings_requested.emit),
         ):
             panel_row.addWidget(self._button(glyph, tip, slot))
         row.addWidget(self.panel)
@@ -153,15 +160,20 @@ class Toolbar(CaptureHidden):
 
     def _button(self, glyph: str, tip: str, slot) -> QToolButton:
         button = QToolButton()
-        button.setText(glyph)
+        button.setAutoRaise(True)  # hover tints the glyph through the icon's Active mode
+        button.setIconSize(QSize(theme.ICON_TOOLBAR, theme.ICON_TOOLBAR))
         button.setToolTip(tip)
+        self._glyphs[button] = glyph
         button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.clicked.connect(slot)
         return button
 
     def apply_theme(self) -> None:
-        self.setStyleSheet(theme.stylesheet(theme.tokens()))
+        t = theme.tokens()
+        self.setStyleSheet(theme.stylesheet(t))
+        for button, glyph in self._glyphs.items():
+            button.setIcon(icons.icon(glyph, t))
         self.update()
 
     def refresh(self) -> None:
@@ -240,7 +252,9 @@ class CheatSheet(CaptureHidden):
         self.setObjectName("cheatSheet")
         self.setWindowTitle("Overmark keys")
         self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(24, 20, 24, 20)
+        self._layout.setContentsMargins(
+            theme.SPACE_LG, theme.SPACE_MD, theme.SPACE_LG, theme.SPACE_MD
+        )
         self._grid_host = QWidget()
         self._layout.addWidget(self._grid_host)
         controller.settings_changed.connect(self.rebuild)
@@ -251,8 +265,8 @@ class CheatSheet(CaptureHidden):
         old = self._grid_host
         self._grid_host = QWidget()
         grid = QGridLayout(self._grid_host)
-        grid.setHorizontalSpacing(24)
-        grid.setVerticalSpacing(6)
+        grid.setHorizontalSpacing(theme.SPACE_LG)
+        grid.setVerticalSpacing(theme.SPACE_SM)
         heading = QLabel("Overmark keys")
         heading.setObjectName("heading")
         grid.addWidget(heading, 0, 0, 1, 2)
@@ -272,7 +286,7 @@ class CheatSheet(CaptureHidden):
         ]
         for i, (key, label) in enumerate(rows, start=1):
             key_label = QLabel(key)
-            key_label.setStyleSheet("font-weight: 600;")
+            key_label.setObjectName("key")
             text = QLabel(label)
             text.setObjectName("muted")
             grid.addWidget(key_label, i, 0)
@@ -303,4 +317,4 @@ class CheatSheet(CaptureHidden):
         rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         painter.setPen(QPen(QColor(t["border"]), 1))
         painter.setBrush(QColor(t["card"]))
-        painter.drawRoundedRect(rect, 16, 16)
+        painter.drawRoundedRect(rect, theme.RADIUS_LG, theme.RADIUS_LG)

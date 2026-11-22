@@ -15,8 +15,9 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - Fading is a setting: on or off plus a delay in seconds; strokes then ease out over about 0.6 s. `F` pins the ink on screen so it stops fading.
 - The toolbar (a pill that collapses to a small handle and expands on hover), the cheat-sheet and the settings window are excluded from screen capture.
 - Compression-safe defaults: widths in capture pixels (pen 6, highlighter 28, text 32, laser dot 18 with a 6 px halo), a dark outline on every stroke (a light one on dark ink), and a brightness-first palette with no pure red or blue.
-- Keep-awake, off by default, for presentations and long sessions: a tray item and a toolbar button (☀) toggle it, the tray icon gets a green badge while it is armed. The default method asks Windows to keep the display on, so the pointer never moves; the alternative nudges the pointer 1 px and back after a whole interval of inactivity, and never while a stroke is drawn, a label typed or the laser held.
+- Keep-awake, off by default, for presentations and long sessions: a tray item and the toolbar's sun button toggle it, and the tray icon gets a green badge while it is armed. The default method asks Windows to keep the display on, so the pointer never moves; the alternative nudges the pointer 1 px and back after a whole interval of inactivity, and never while a stroke is drawn, a label typed or the laser held.
 - Screen recording through ffmpeg (see [Recording](#recording)): all screens in one video, or one screen, with the toolbar, the recording chip and settings kept out of the video.
+- The toolbar, cheat-sheet, settings window, recording chip and tray menu follow the fleet design system in light and dark, switching with the Windows theme, with Lucide icons throughout ([docs/design-tokens.md](docs/design-tokens.md)).
 - Mouse, touch and pen share one input path; pen pressure varies the width and the pen's eraser end (or barrel button) erases whole strokes.
 
 ## Keys while drawing

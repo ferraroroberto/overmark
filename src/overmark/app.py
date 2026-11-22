@@ -9,12 +9,12 @@ from collections.abc import Callable
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from PySide6.QtCore import QAbstractNativeEventFilter, QPointF, QStandardPaths, Qt, QTimer
+from PySide6.QtCore import QAbstractNativeEventFilter, QPointF, QRectF, QStandardPaths, QTimer
 from PySide6.QtGui import QAction, QColor, QGuiApplication, QIcon, QPainter, QPen, QPixmap, QScreen
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from overmark import config as config_mod
-from overmark import theme, win32
+from overmark import icons, theme, win32
 from overmark.config import Settings
 from overmark.controller import Controller
 from overmark.keepawake import POLL_MS, KeepAwakeEngine
@@ -37,7 +37,7 @@ HOTKEY_LABELS = {
     RECORD_HOTKEY_ID: "Start/stop recording",
     PAUSE_HOTKEY_ID: "Pause recording",
 }
-ARMED_BADGE = "#1a7f37"  # fleet success green, readable on the accent circle
+TRAY_SIZES = (16, 20, 24, 32, 40, 48, 64)  # Windows picks per DPI; small sizes stay crisp
 
 
 class HotkeyFilter(QAbstractNativeEventFilter):
@@ -57,25 +57,31 @@ class HotkeyFilter(QAbstractNativeEventFilter):
 
 
 def tray_icon(armed: bool = False) -> QIcon:
-    """The app icon; a green badge in the corner shows keep-awake is armed."""
-    pixmap = QPixmap(64, 64)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QColor(theme.tokens()["accent_fill"]))
-    painter.drawEllipse(2, 2, 60, 60)
-    pen = QPen(QColor("#ffffff"), 7)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    painter.setPen(pen)
-    painter.drawLine(QPointF(19, 44), QPointF(44, 19))
-    painter.drawPoint(QPointF(46, 46))
-    if armed:
-        painter.setPen(QPen(QColor("#ffffff"), 4))
-        painter.setBrush(QColor(ARMED_BADGE))
-        painter.drawEllipse(QPointF(50, 14), 11, 11)
-    painter.end()
-    return QIcon(pixmap)
+    """The fleet brand tile (Lucide master, light on dark); a badge shows keep-awake is armed."""
+    result = QIcon()
+    for size in TRAY_SIZES:
+        pixmap = QPixmap(size, size)
+        pixmap.fill(QColor(theme.BRAND_TILE))
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pad = size * theme.BRAND_PAD
+        box = QRectF(pad, pad, size - 2 * pad, size - 2 * pad)
+        icons.paint(painter, theme.BRAND_GLYPH, theme.BRAND_STROKE, box, theme.BRAND_STROKE_WIDTH)
+        if armed:
+            # Bottom-right, a corner the diagonal pencil leaves empty, ringed in the tile colour.
+            radius = size * 0.2
+            centre = size - radius - size * 0.03
+            painter.setPen(QPen(QColor(theme.BRAND_TILE), size * 0.06))
+            painter.setBrush(QColor(theme.BRAND_BADGE_ON))
+            painter.drawEllipse(QPointF(centre, centre), radius, radius)
+        painter.end()
+        result.addPixmap(pixmap)
+    return result
+
+
+def menu_icon(name: str) -> QIcon:
+    """A tray-menu glyph at the inline size, in the theme's text colour."""
+    return QIcon(icons.pixmap(name, theme.tokens()["fg"], theme.ICON_INLINE))
 
 
 class OvermarkApp:
@@ -275,7 +281,9 @@ class OvermarkApp:
     def apply_theme(self) -> None:
         self.toolbar.apply_theme()
         self.cheat_sheet.rebuild()
-        self.tray.setIcon(tray_icon(self.keep_awake.armed))
+        self._theme_menu()
+        if self.settings_dialog is not None:
+            self.settings_dialog.apply_theme()
 
     # ----- tray ----------------------------------------------------------------------
 
@@ -284,7 +292,7 @@ class OvermarkApp:
         self.draw_action = QAction("Draw", menu, checkable=True)
         self.draw_action.triggered.connect(lambda _c: self.controller.toggle_draw())
         menu.addAction(self.draw_action)
-        menu.addAction("Clear ink", self.controller.clear)
+        clear_action = menu.addAction("Clear ink", self.controller.clear)
         self.awake_action = QAction("Keep display awake", menu, checkable=True)
         self.awake_action.triggered.connect(lambda _c: self.controller.toggle_keep_awake())
         menu.addAction(self.awake_action)
@@ -294,13 +302,28 @@ class OvermarkApp:
         self.pause_action = QAction("Pause recording", menu)
         self.pause_action.triggered.connect(lambda _c: self.recording.toggle_pause())
         menu.addAction(self.pause_action)
-        menu.addAction("Cheat-sheet", self.cheat_sheet.toggle)
-        menu.addAction("Settings…", self.open_settings)
+        keys_action = menu.addAction("Cheat-sheet", self.cheat_sheet.toggle)
+        settings_action = menu.addAction("Settings…", self.open_settings)
         menu.addSeparator()
-        menu.addAction("Quit", self.quit)
+        quit_action = menu.addAction("Quit", self.quit)
+        # Fixed glyphs; the record and pause glyphs follow the recording state.
+        self._menu_glyphs = {
+            self.draw_action: theme.BRAND_GLYPH,
+            clear_action: "trash-2",
+            self.awake_action: "sun",
+            keys_action: "keyboard",
+            settings_action: "settings",
+            quit_action: "power",
+        }
         self._menu = menu
-        self._update_menu()
+        self._theme_menu()
         return menu
+
+    def _theme_menu(self) -> None:
+        self._menu.setStyleSheet(theme.stylesheet(theme.tokens()))
+        for action, glyph in self._menu_glyphs.items():
+            action.setIcon(menu_icon(glyph))
+        self._update_menu()
 
     def _update_menu(self) -> None:
         if hasattr(self, "draw_action"):
@@ -314,6 +337,8 @@ class OvermarkApp:
                 f"{'Start' if idle else 'Stop'} recording ({settings.record_hotkey.upper()})"
             )
             self.record_action.setEnabled(not self.recording.busy)
+            self.record_action.setIcon(menu_icon("circle" if idle else "square"))
+            self.pause_action.setIcon(menu_icon("play" if state is State.PAUSED else "pause"))
             self.pause_action.setText(
                 f"{'Resume' if state is State.PAUSED else 'Pause'} recording "
                 f"({settings.pause_hotkey.upper()})"
