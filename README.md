@@ -95,7 +95,7 @@ py -3 -m venv .venv
 powershell -File scripts/verify-before-ship.ps1
 ```
 
-The gate prints `GATE-RESULT: PASS` or `GATE-RESULT: FAIL (<stage>)`.
+The gate prints `GATE-RESULT: PASS` or `GATE-RESULT: FAIL (<stage>)`. After byte-compile and ruff it runs `scripts/run_ratchets.py`: ten baseline-and-ratchet checks (static, comment, docs, structure, instruction, doc refs, dead code, conventions, runtime write, request budget), then the tests and the runtime write probe. Each ratchet records today's debt in a committed `.<name>-ratchet-baseline.json` and fails only when a count rises; the scripts are copied unedited from project-scaffolding (`.fleet.toml` `[vendored]`). Tests read the machine's identity only through the `synthetic_host` fixture.
 
 ## Notes
 
