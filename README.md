@@ -4,7 +4,7 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 
 > **Name.** "Overmark" is a working name. A trademark and store-name check is still pending; do not treat it as final.
 
-**Status:** seed only. There is no app code yet; the work is split into step issues in this repo's issue tracker (step 0 is a one-day probe that decides the stack).
+**Status:** seed only. There is no app code yet; the work is split into step issues in this repo's issue tracker (the step-0 probe chose the stack: [docs/probe-results.md](docs/probe-results.md)).
 
 ## What it is for
 
@@ -19,7 +19,7 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - **Every screen at once:** drawing covers all monitors, as a region-screenshot overlay covers the whole desktop.
 - **Toolbar:** a floating pill that collapses and expands.
 - **Tools:** pen, highlighter, arrow, text label, outline, laser, undo, clear, and a region screenshot.
-- **Stack:** Python with PySide6 first; Rust only if the step-0 probe shows Python cannot draw smoothly enough.
+- **Stack:** Python with PySide6. The step-0 probe found the app-side drawing cost far inside the frame budget ([docs/probe-results.md](docs/probe-results.md)); the on-screen and OBS checks still owed are listed there.
 
 ## Configuration
 

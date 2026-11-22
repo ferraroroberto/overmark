@@ -1,1 +1,2 @@
-# Runtime dependencies. The overlay stack (PySide6) is added by the step-0 probe once it picks the stack.
+# Runtime dependencies. PySide6 is the overlay stack chosen by the step-0 probe (docs/probe-results.md).
+PySide6>=6.12
