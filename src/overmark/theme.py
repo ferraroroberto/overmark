@@ -93,6 +93,20 @@ def stylesheet(t: dict[str, str]) -> str:
         background: {t["accent_fill"]}; color: {t["accent_fg"]}; border-color: {t["accent_fill"]};
     }}
     QCheckBox {{ spacing: 8px; }}
+    QTabWidget::pane {{ border: none; background: {t["canvas"]}; }}
+    QTabBar::tab {{
+        background: transparent; border: none; border-bottom: 2px solid transparent;
+        padding: 8px 16px; font-weight: 600; color: {t["fg_muted"]};
+    }}
+    QTabBar::tab:hover {{ color: {t["fg"]}; }}
+    QTabBar::tab:selected {{ color: {t["accent_text"]}; border-bottom-color: {t["accent"]}; }}
+    QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; }}
+    QScrollBar:vertical {{ background: transparent; width: 10px; margin: 0; }}
+    QScrollBar::handle:vertical {{
+        background: {t["control_border"]}; border-radius: 5px; min-height: 32px;
+    }}
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
     QToolButton {{
         background: transparent; border: none; border-radius: 18px;
         min-width: 36px; min-height: 36px; font-size: 16px; color: {t["fg"]};

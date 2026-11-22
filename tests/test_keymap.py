@@ -8,6 +8,7 @@ from overmark.keymap import (
     MOD_CONTROL,
     MOD_SHIFT,
     KeyMap,
+    hotkey_clashes,
     normalize_combo,
     parse_hotkey,
 )
@@ -58,3 +59,31 @@ def test_parse_hotkey() -> None:
 def test_parse_hotkey_rejects_unsafe_or_unknown(raw: str) -> None:
     with pytest.raises(ValueError):
         parse_hotkey(raw)
+
+
+DEFAULT_HOTKEYS = {
+    "Draw": "ctrl+alt+d",
+    "Start/stop recording": "ctrl+alt+f9",
+    "Pause recording": "ctrl+alt+f10",
+}
+
+
+def test_default_hotkeys_do_not_clash() -> None:
+    assert hotkey_clashes(DEFAULT_HOTKEYS, DEFAULT_KEYS) == []
+
+
+def test_two_hotkeys_on_one_combo_clash() -> None:
+    problems = hotkey_clashes({**DEFAULT_HOTKEYS, "Pause recording": "Alt+Ctrl+D"}, DEFAULT_KEYS)
+    assert problems == ["Draw and Pause recording both use CTRL+ALT+D"]
+
+
+def test_a_hotkey_on_an_in_draw_key_clashes() -> None:
+    problems = hotkey_clashes({**DEFAULT_HOTKEYS, "Start/stop recording": "ctrl+z"}, DEFAULT_KEYS)
+    assert problems == ["Start/stop recording uses CTRL+Z, the in-draw key for Undo"]
+
+
+def test_rebound_in_draw_keys_are_what_counts() -> None:
+    keys = {**DEFAULT_KEYS, "clear": "ctrl+alt+f9"}
+    assert hotkey_clashes(DEFAULT_HOTKEYS, keys) == [
+        "Start/stop recording uses CTRL+ALT+F9, the in-draw key for Clear all ink"
+    ]

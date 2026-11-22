@@ -1,6 +1,8 @@
 {
   "hotkey": {
-    "toggle_draw": "ctrl+alt+d"
+    "toggle_draw": "ctrl+alt+d",
+    "record_toggle": "ctrl+alt+f9",
+    "record_pause": "ctrl+alt+f10"
   },
   "screens": {
     "cover_all": true
@@ -108,12 +110,6 @@
     "laser_dot_px": 18.0,
     "laser_halo_px": 6.0
   },
-  "keep_awake": {
-    "enabled": false,
-    "mode": "execution_state",
-    "interval_seconds": 60,
-    "distance_px": 1
-  },
   "keys": {
     "pen": "p",
     "highlighter": "h",
@@ -132,5 +128,28 @@
     "preset_5": "5",
     "preset_6": "6",
     "preset_7": "7"
+  },
+  "keep_awake": {
+    "enabled": false,
+    "mode": "execution_state",
+    "interval_seconds": 60,
+    "distance_px": 1
+  },
+  "recording": {
+    "folder": "",
+    "name_pattern": "overmark-{date}-{time}-{screen}",
+    "container": "mp4",
+    "quality": "medium",
+    "bitrate_kbps": 0,
+    "frame_rate": 30,
+    "screen": "all",
+    "cursor": true,
+    "include_ink": true,
+    "microphone": {
+      "enabled": false,
+      "device": ""
+    },
+    "backend": "auto",
+    "ffmpeg_path": ""
   }
 }
