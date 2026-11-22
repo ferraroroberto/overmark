@@ -70,10 +70,11 @@ Recording needs [ffmpeg](https://ffmpeg.org/download.html) on `PATH` (or `record
 | `frame_rate` | 15, 24, 30 or 60 |
 | `cursor`, `include_ink` | show the pointer; keep the ink in the video (off hides it for the length of the recording) |
 | `microphone.enabled`, `microphone.device` | record one DirectShow microphone (picked in Settings) |
+| `system_audio.enabled`, `system_audio.device` | record what the computer plays, through WASAPI loopback; an empty device means the default output |
 | `backend` | `auto` (GPU desktop duplication, falling back to GDI), `ddagrab` or `gdigrab` |
 | `ffmpeg_path` | ffmpeg's location if it is not on `PATH` |
 
-H.264 uses the first hardware encoder that passes a one-frame test (NVIDIA, Intel, AMD), else `libx264`. Pause ends a segment and resume starts the next; about a second around each pause is not recorded, and stop joins the segments into one file without re-encoding. While recording, the segments are `.<name>.part<N>.mkv` files in the destination folder, so an interrupted recording never looks finished; they can still be played or joined by hand. Each saved recording writes one log line with the screen choice, duration, size and encoder. If a hotkey does nothing, another application may be intercepting it even though registration succeeded; pick another combo. The capture checks behind this are in [docs/recording-probe.md](docs/recording-probe.md).
+H.264 uses the first hardware encoder that passes a one-frame test (NVIDIA, Intel, AMD), else `libx264`. Pause ends a segment and resume starts the next; about a second around each pause is not recorded, and stop joins the segments into one file without re-encoding the video. System audio is captured beside each segment as `.<name>.part<N>.wav` (ffmpeg on Windows cannot record it, so [PyAudioWPatch](https://pypi.org/project/PyAudioWPatch/) does) and mixed in on stop: with the microphone also on, the two become one track, and only the audio is re-encoded. While recording, the segments are `.<name>.part<N>.mkv` files (plus their WAVs) in the destination folder, so an interrupted recording never looks finished; they can still be played or joined by hand. Each saved recording writes one log line with the screen choice, duration, size and encoder. If a hotkey does nothing, another application may be intercepting it even though registration succeeded; pick another combo. The capture checks behind this are in [docs/recording-probe.md](docs/recording-probe.md).
 
 ## Run
 

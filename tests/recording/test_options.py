@@ -6,6 +6,7 @@ from overmark.config import Settings, settings_from_dict, settings_to_dict
 from overmark.recording.monitors import Monitor, bounding_box, describe, numbered, select
 from overmark.recording.options import (
     RecordingOptions,
+    SystemAudio,
     options_from_dict,
     options_to_dict,
     parse_bitrate,
@@ -34,6 +35,7 @@ def test_every_setting_round_trips_through_config() -> None:
         "cursor": False,
         "include_ink": False,
         "microphone": {"enabled": True, "device": "Desk Mic"},
+        "system_audio": {"enabled": True, "device": "Desk Speakers"},
         "backend": "gdigrab",
         "ffmpeg_path": "C:/tools/ffmpeg.exe",
     }
@@ -119,3 +121,21 @@ def test_a_screen_number_beyond_the_monitors_is_an_error() -> None:
 
 def test_bounding_box_covers_every_monitor() -> None:
     assert bounding_box([A, B, C]) == (0, -1080, 3840, 2160)
+
+
+def test_system_audio_defaults_off_with_the_default_output() -> None:
+    options = options_from_dict({})
+    assert options.system_audio == SystemAudio(enabled=False, device="")
+
+
+@pytest.mark.parametrize(
+    ("block", "expected"),
+    [
+        ("on", SystemAudio()),
+        ({"enabled": "yes", "device": "Desk Speakers"}, SystemAudio(False, "Desk Speakers")),
+        ({"enabled": True, "device": 7}, SystemAudio(True, "")),
+    ],
+)
+def test_invalid_system_audio_falls_back_with_a_warning(block, expected, caplog) -> None:
+    assert options_from_dict({"system_audio": block}).system_audio == expected
+    assert "recording.system_audio" in caplog.text

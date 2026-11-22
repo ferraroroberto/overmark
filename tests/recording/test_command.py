@@ -8,10 +8,13 @@ from overmark.recording.command import (
     DDAGRAB,
     GDIGRAB,
     CapturePlan,
+    SystemPart,
     capture_plans,
     concat_list,
     encoder_args,
     join_command,
+    parse_anchor,
+    parse_duration,
     segment_command,
 )
 from overmark.recording.monitors import Monitor
@@ -195,3 +198,79 @@ def test_join_copies_streams_into_the_chosen_container(
     assert cmd[-3:-1] == ["-f", muxer]
     assert ("-movflags" in cmd) is faststart
     assert "-n" in cmd
+
+
+STAMP = "print(RTCTIME,24)"
+
+
+@pytest.mark.parametrize("backend", [DDAGRAB, GDIGRAB])
+def test_system_audio_stamps_the_first_frame_time_in_the_log(backend: str) -> None:
+    on = graph(segment_command("ffmpeg", plan(backend=backend, system_audio=""), OUT))
+    off = graph(segment_command("ffmpeg", plan(backend=backend), OUT))
+    assert STAMP in on
+    assert STAMP not in off
+
+
+def test_system_audio_adds_no_input_to_the_segment() -> None:
+    cmd = segment_command("ffmpeg", plan(system_audio=""), OUT)
+    assert "-i" not in cmd
+    assert "-c:a" not in cmd
+
+
+def test_parse_anchor_reads_the_stamp_in_seconds() -> None:
+    log = "[warn] noise\n[Eval @ 000000ab12] 1700000000250000.000000\n"
+    assert parse_anchor(log) == pytest.approx(1_700_000_000.25)
+    assert parse_anchor("nothing here") is None
+
+
+def test_parse_duration_reads_the_header_line() -> None:
+    header = "Input #0, matroska,webm, from 'x.mkv':\n  Duration: 01:02:03.45, start: 0.0\n"
+    assert parse_duration(header) == pytest.approx(3723.45)
+    assert parse_duration("no header") is None
+
+
+PARTS = [
+    SystemPart(Path("a.wav"), 0.4, 10.0),
+    SystemPart(Path("b.wav"), -0.05, 5.5),
+]
+
+
+def audio_streams(cmd: list[str]) -> list[str]:
+    """The output's audio sources: a copied input stream or the mixed filter output."""
+    maps = [cmd[i + 1] for i, arg in enumerate(cmd) if arg == "-map"]
+    return [m for m in maps if m != "0:v"]
+
+
+def test_join_with_neither_source_has_no_audio_to_mix() -> None:
+    cmd = join_command("ffmpeg", Path("list.txt"), "mp4", Path(".t.part.mp4"))
+    assert "-filter_complex" not in cmd
+    assert audio_streams(cmd) == ["0"]  # copies what the segments hold: video only
+
+
+def test_join_with_only_system_audio_has_one_track_from_the_wavs() -> None:
+    cmd = join_command("ffmpeg", Path("list.txt"), "mp4", Path(".t.part.mp4"), system_parts=PARTS)
+    g = graph(cmd)
+    assert audio_streams(cmd) == ["[aout]"]
+    assert ["-i", "a.wav", "-i", "b.wav"] == cmd[cmd.index("a.wav") - 1 : cmd.index("b.wav") + 1]
+    assert "[1:a]atrim=start=0.400000,asetpts=PTS-STARTPTS," in g
+    assert "[2:a]adelay=delays=50.000:all=1," in g
+    assert "apad=whole_dur=10.000000,atrim=end=10.000000[s1]" in g
+    assert "[s1][s2]concat=n=2:v=0:a=1[aout]" in g
+    assert "amix" not in g
+    assert cmd[cmd.index("-c:v") + 1] == "copy"
+    assert cmd[cmd.index("-c:a") + 1] == "aac"
+
+
+def test_join_with_microphone_and_system_audio_mixes_one_track() -> None:
+    cmd = join_command(
+        "ffmpeg",
+        Path("list.txt"),
+        "webm",
+        Path(".t.part.webm"),
+        system_parts=PARTS,
+        microphone=True,
+    )
+    g = graph(cmd)
+    assert audio_streams(cmd) == ["[aout]"]
+    assert "[0:a][sys]amix=inputs=2:duration=first:normalize=0[aout]" in g
+    assert cmd[cmd.index("-c:a") + 1] == "libopus"

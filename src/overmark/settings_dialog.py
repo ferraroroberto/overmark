@@ -50,6 +50,7 @@ from overmark.recording.options import (
     SCREEN_ALL,
     Microphone,
     RecordingOptions,
+    SystemAudio,
 )
 
 log = logging.getLogger(__name__)
@@ -103,6 +104,7 @@ class SettingsDialog(QDialog):
         apply: Callable[[Settings], str | None],
         *,
         list_microphones: Callable[[str], list[str]] = lambda _path: [],
+        list_system_audio: Callable[[], list[str]] = lambda: [],
         screen_labels: list[str] | None = None,
     ) -> None:
         super().__init__(None, Qt.WindowType.WindowStaysOnTopHint)
@@ -225,7 +227,9 @@ class SettingsDialog(QDialog):
         root.addWidget(note)
         root.addStretch(1)
 
-        recording_tab = self._recording_tab(settings, list_microphones, screen_labels or [])
+        recording_tab = self._recording_tab(
+            settings, list_microphones, list_system_audio, screen_labels or []
+        )
         tabs.addTab(_scrolling(recording_tab), "Recording")
 
         self.error = QLabel("")
@@ -289,6 +293,7 @@ class SettingsDialog(QDialog):
         self,
         settings: Settings,
         list_microphones: Callable[[str], list[str]],
+        list_system_audio: Callable[[], list[str]],
         screen_labels: list[str],
     ) -> QWidget:
         rec = settings.recording
@@ -384,10 +389,29 @@ class SettingsDialog(QDialog):
         self.rec_mic.toggled.connect(
             lambda on: self.rec_mic_device.setEnabled(on and self.rec_mic_device.count() > 0)
         )
+        self.rec_sys = QCheckBox("Record system audio (what the computer plays)")
+        self.rec_sys.setChecked(rec.system_audio.enabled)
+        self.rec_sys_device = QComboBox()
+        outputs = list_system_audio()
+        if outputs:
+            self.rec_sys_device.addItem("Default output", "")
+        if rec.system_audio.device and rec.system_audio.device not in outputs:
+            outputs.insert(0, rec.system_audio.device)
+        for name in outputs:
+            self.rec_sys_device.addItem(name, name)
+        self.rec_sys_device.setCurrentIndex(
+            max(self.rec_sys_device.findData(rec.system_audio.device), 0)
+        )
+        self.rec_sys_device.setEnabled(rec.system_audio.enabled and bool(outputs))
+        self.rec_sys.toggled.connect(
+            lambda on: self.rec_sys_device.setEnabled(on and self.rec_sys_device.count() > 0)
+        )
         self.rec_ffmpeg = QLineEdit(rec.ffmpeg_path)
         self.rec_ffmpeg.setPlaceholderText("found on PATH")
         audio_form.addRow(self.rec_mic)
         audio_form.addRow("Microphone", self.rec_mic_device)
+        audio_form.addRow(self.rec_sys)
+        audio_form.addRow("System audio", self.rec_sys_device)
         audio_form.addRow("ffmpeg", self.rec_ffmpeg)
         column.addWidget(audio_box)
 
@@ -437,6 +461,11 @@ class SettingsDialog(QDialog):
         device = self.rec_mic_device.currentText().strip()
         if self.rec_mic.isChecked() and not device:
             raise ValueError("Recording: pick a microphone, or switch the microphone off")
+        if self.rec_sys.isChecked() and self.rec_sys_device.count() == 0:
+            raise ValueError(
+                "Recording: no system-audio device is available; switch system audio off"
+            )
+        sys_device = self.rec_sys_device.currentData()
         return RecordingOptions(
             folder=self.rec_folder.text().strip(),
             name_pattern=pattern,
@@ -448,6 +477,10 @@ class SettingsDialog(QDialog):
             cursor=self.rec_cursor.isChecked(),
             include_ink=self.rec_ink.isChecked(),
             microphone=Microphone(enabled=self.rec_mic.isChecked(), device=device),
+            system_audio=SystemAudio(
+                enabled=self.rec_sys.isChecked(),
+                device=sys_device if isinstance(sys_device, str) else "",
+            ),
             backend=str(self.rec_backend.currentData()),
             ffmpeg_path=self.rec_ffmpeg.text().strip(),
         )

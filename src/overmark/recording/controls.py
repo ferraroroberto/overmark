@@ -124,6 +124,7 @@ class RecordingControls(QObject):
         if opts.microphone.enabled and not microphone:
             self._tell("Microphone is on but no device is picked; choose one in Settings.")
             return
+        system_audio = opts.system_audio.device if opts.system_audio.enabled else None
         monitors = win32.display_outputs()
         pointer = win32.cursor_position()
         try:
@@ -169,6 +170,7 @@ class RecordingControls(QObject):
                 bitrate_kbps=opts.bitrate_kbps,
                 microphone=microphone,
                 container=opts.container,
+                system_audio=system_audio,
             )
             recorder = Recorder(ffmpeg, plans, final)
             recorder.start()

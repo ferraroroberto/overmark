@@ -70,6 +70,11 @@ def segment_path(final: Path, index: int) -> Path:
     return final.with_name(f".{final.stem}.part{index}.mkv")
 
 
+def system_audio_path(segment: Path) -> Path:
+    """The system-audio WAV captured beside a segment, as plainly unfinished as it."""
+    return segment.with_suffix(".wav")
+
+
 def joining_path(final: Path) -> Path:
     """Where the joined file is written before its rename to ``final``."""
     return final.with_name(f".{final.stem}.part.{final.suffix.lstrip('.')}")
