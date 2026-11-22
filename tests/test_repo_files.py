@@ -1,4 +1,4 @@
-"""The seed's data files stay well-formed until app code replaces them."""
+"""The repository's data files (fleet card, sample config, ignore list) stay well-formed."""
 
 import json
 import tomllib

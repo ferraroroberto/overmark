@@ -2,7 +2,7 @@
 
 ## This repository
 
-Overmark: a public Windows screen-annotation app for live facilitation. Python + PySide6 overlay and tray first; a Rust renderer only if the step-0 probe fails. Currently a seed with no app code.
+Overmark: a public Windows screen-annotation app for live facilitation. Python + PySide6 overlay and tray first; the step-0 probe kept PySide6 (`docs/probe-results.md`). The MVP (tray, overlays, toolbar, settings) is in `src/overmark/`.
 
 - Public repo: invented names only. No screenshots, hostnames, usernames, machine paths or personal data in code, docs, issues, PRs or commit messages.
 - Never name or copy the branding of an existing commercial annotation tool in any public text.
