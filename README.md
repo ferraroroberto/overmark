@@ -4,30 +4,55 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 
 > **Name.** "Overmark" is a working name. A trademark and store-name check is still pending; do not treat it as final.
 
-**Status:** seed only. There is no app code yet; the work is split into step issues in this repo's issue tracker (the step-0 probe chose the stack: [docs/probe-results.md](docs/probe-results.md)).
+**Status:** MVP. Python with PySide6, chosen by the step-0 probe ([docs/probe-results.md](docs/probe-results.md)); the on-screen latency, OBS Display Capture and pen checks listed there are still owed on real hardware. Later steps are issues in this repo's tracker.
 
-## What it is for
+## What it does
 
-- Draw over any application on any monitor, with a global hotkey (rebindable; `Ctrl+Alt+D` is the default) toggling between drawing and click-through.
-- Keep the controls (toolbar, settings, cheat-sheet) out of screen capture so participants never see them.
-- Stay legible after video-call compression: capture-pixel widths, a dark outline on every stroke, a brightness-first palette.
+- A tray app with one global hotkey (`Ctrl+Alt+D` by default, rebindable in Settings) that toggles between drawing and click-through. Ink stays visible while you click through to the application underneath.
+- Every monitor at once: one transparent overlay per screen, sharing one drawing in desktop coordinates, so a stroke can cross from one monitor to the next.
+- Tools: pen, highlighter (translucent, drawn under other ink), arrow, text label (click, type, `Enter`; `Shift+Enter` for a new line), laser (hold `L`: a dot with a short fading trail, never stored or undone, system cursor hidden), undo, clear.
+- Seven presets (colour, thickness, transparency on/off and amount, outline on/off and thickness): keys `1` to `7`, or the mouse wheel over the toolbar.
+- Fading is a setting: on or off plus a delay in seconds; strokes then ease out over about 0.6 s. `F` pins the ink on screen so it stops fading.
+- The toolbar (a pill that collapses to a small handle and expands on hover), the cheat-sheet and the settings window are excluded from screen capture.
+- Compression-safe defaults: widths in capture pixels (pen 6, highlighter 28, text 32, laser dot 18 with a 6 px halo), a dark outline on every stroke (a light one on dark ink), and a brightness-first palette with no pure red or blue.
+- Mouse, touch and pen share one input path; pen pressure varies the width and the pen's eraser end (or barrel button) erases whole strokes.
 
-## Planned behaviour
+## Keys while drawing
 
-- **Fading ink** is a setting: on or off, plus a delay in seconds.
-- **Presets** are saved sets of colour, thickness, transparency (on or off, and how much) and dark outline (on or off, and its thickness). Keys `1` to `7` select a preset; the mouse wheel over the toolbar switches between them.
-- **Every screen at once:** drawing covers all monitors, as a region-screenshot overlay covers the whole desktop.
-- **Toolbar:** a floating pill that collapses and expands.
-- **Tools:** pen, highlighter, arrow, text label, outline, laser, undo, clear, and a region screenshot.
-- **Stack:** Python with PySide6. The step-0 probe found the app-side drawing cost far inside the frame budget ([docs/probe-results.md](docs/probe-results.md)); the on-screen and OBS checks still owed are listed there.
+| Key | Action |
+|---|---|
+| `P` / `H` / `A` / `T` | pen / highlighter / arrow / text |
+| hold `L` | laser |
+| `1` to `7` | preset |
+| `Ctrl+Z` | undo |
+| `E` | clear |
+| `F` | pin ink (stop fading) |
+| `?` | cheat-sheet |
+| `Esc` | stop drawing (ink stays); a second `Esc` within a second clears |
+
+Keys reach the app only while drawing, so they never collide with the application underneath. All of them are rebindable in `config.json` (`keys`); the draw hotkey is also rebindable in Settings.
 
 ## Configuration
 
-Copy `config.sample.json` to `config.json` (git-ignored) and edit. Settings are documented where the code that reads them lands.
+`config.json` (git-ignored) is created from `config.sample.json` on first run. Settings saves it; you can also edit it by hand while the app is closed.
+
+| Key | Meaning |
+|---|---|
+| `hotkey.toggle_draw` | global draw hotkey; needs `ctrl`, `alt` or `win` |
+| `screens.cover_all` | `true`: draw on every monitor; `false`: primary monitor only |
+| `fade.enabled`, `fade.delay_seconds` | fading on or off, and the delay before a stroke fades |
+| `presets` | the seven presets: `color` (`#RRGGBB`), `thickness_px`, `transparency` (`enabled`, `percent`), `outline` (`enabled`, `thickness_px`) |
+| `sizes` | highlighter, text and laser sizes in capture pixels |
+| `keys` | the in-draw key for each action |
+
+Invalid values fall back to the default for that key, with a warning in the log. The log is `overmark.log` in the app's local data folder (`%LOCALAPPDATA%\Overmark\Overmark`), one line per drawing session.
 
 ## Run
 
-No runnable app yet.
+```powershell
+powershell -File scripts/run.ps1            # tray app, no console
+powershell -File scripts/run.ps1 -Console   # with the log in the console
+```
 
 ## Verify
 

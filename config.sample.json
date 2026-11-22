@@ -7,15 +7,124 @@
   },
   "fade": {
     "enabled": true,
-    "delay_seconds": 8
+    "delay_seconds": 8.0
   },
   "presets": [
-    {"name": "yellow",  "color": "#FFE600", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
-    {"name": "magenta", "color": "#FF2BD6", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
-    {"name": "cyan",    "color": "#19E3FF", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
-    {"name": "mint",    "color": "#4DFFA6", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
-    {"name": "white",   "color": "#FFFFFF", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
-    {"name": "ink",     "color": "#111111", "thickness_px": 6,  "transparency": {"enabled": false, "percent": 0},  "outline": {"enabled": true, "thickness_px": 2}},
-    {"name": "marker",  "color": "#FFE600", "thickness_px": 28, "transparency": {"enabled": true,  "percent": 55}, "outline": {"enabled": false, "thickness_px": 0}}
-  ]
+    {
+      "name": "yellow",
+      "color": "#FFE600",
+      "thickness_px": 6.0,
+      "transparency": {
+        "enabled": false,
+        "percent": 0
+      },
+      "outline": {
+        "enabled": true,
+        "thickness_px": 2.0
+      }
+    },
+    {
+      "name": "magenta",
+      "color": "#FF2BD6",
+      "thickness_px": 6.0,
+      "transparency": {
+        "enabled": false,
+        "percent": 0
+      },
+      "outline": {
+        "enabled": true,
+        "thickness_px": 2.0
+      }
+    },
+    {
+      "name": "cyan",
+      "color": "#19E3FF",
+      "thickness_px": 6.0,
+      "transparency": {
+        "enabled": false,
+        "percent": 0
+      },
+      "outline": {
+        "enabled": true,
+        "thickness_px": 2.0
+      }
+    },
+    {
+      "name": "mint",
+      "color": "#4DFFA6",
+      "thickness_px": 6.0,
+      "transparency": {
+        "enabled": false,
+        "percent": 0
+      },
+      "outline": {
+        "enabled": true,
+        "thickness_px": 2.0
+      }
+    },
+    {
+      "name": "white",
+      "color": "#FFFFFF",
+      "thickness_px": 6.0,
+      "transparency": {
+        "enabled": false,
+        "percent": 0
+      },
+      "outline": {
+        "enabled": true,
+        "thickness_px": 2.0
+      }
+    },
+    {
+      "name": "ink",
+      "color": "#111111",
+      "thickness_px": 6.0,
+      "transparency": {
+        "enabled": false,
+        "percent": 0
+      },
+      "outline": {
+        "enabled": true,
+        "thickness_px": 2.0
+      }
+    },
+    {
+      "name": "marker",
+      "color": "#FFE600",
+      "thickness_px": 28.0,
+      "transparency": {
+        "enabled": true,
+        "percent": 55
+      },
+      "outline": {
+        "enabled": false,
+        "thickness_px": 0.0
+      }
+    }
+  ],
+  "sizes": {
+    "highlighter_px": 28.0,
+    "text_px": 32.0,
+    "laser_dot_px": 18.0,
+    "laser_halo_px": 6.0
+  },
+  "keys": {
+    "pen": "p",
+    "highlighter": "h",
+    "arrow": "a",
+    "text": "t",
+    "laser": "l",
+    "undo": "ctrl+z",
+    "clear": "e",
+    "pin": "f",
+    "cheat_sheet": "?",
+    "exit": "esc",
+    "preset_1": "1",
+    "preset_2": "2",
+    "preset_3": "3",
+    "preset_4": "4",
+    "preset_5": "5",
+    "preset_6": "6",
+    "preset_7": "7"
+  }
 }
