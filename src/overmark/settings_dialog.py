@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from overmark import theme, win32
+from overmark import icons, theme, win32
 from overmark.config import MAX_TRANSPARENCY_PERCENT, Settings
 from overmark.keepawake import (
     MAX_DISTANCE_PX,
@@ -112,14 +112,17 @@ class SettingsDialog(QDialog):
         self._loading = False
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(16, 16, 16, 16)
-        outer.setSpacing(12)
-        tabs = QTabWidget()
+        outer.setContentsMargins(
+            theme.RADIUS_SETTINGS, theme.SPACE_MD, theme.RADIUS_SETTINGS, theme.SPACE_MD
+        )
+        outer.setSpacing(theme.GUTTER)
+        self.tabs = tabs = QTabWidget()
+        tabs.setIconSize(QSize(theme.ICON_TITLE, theme.ICON_TITLE))
         outer.addWidget(tabs)
         drawing_tab = QWidget()
         root = QVBoxLayout(drawing_tab)
-        root.setContentsMargins(4, 4, 4, 4)
-        root.setSpacing(12)
+        root.setContentsMargins(theme.SPACE_XS, theme.SPACE_XS, theme.SPACE_XS, theme.SPACE_XS)
+        root.setSpacing(theme.GUTTER)
         tabs.addTab(_scrolling(drawing_tab), "Drawing")
 
         hotkey_box = QGroupBox("Draw hotkey")
@@ -243,10 +246,19 @@ class SettingsDialog(QDialog):
         buttons.addWidget(save)
         outer.addLayout(buttons)
 
-        self.setStyleSheet(theme.stylesheet(theme.tokens()))
+        self._tab_glyphs = (theme.BRAND_GLYPH, "video")
+        self.apply_theme()
         self.setMinimumWidth(440)
         self._tab_contents = (drawing_tab, recording_tab)
         self._sized = False
+
+    def apply_theme(self) -> None:
+        """Restyle for the current light or dark scheme; also called when the system flips."""
+        t = theme.tokens()
+        self.setStyleSheet(theme.stylesheet(t))
+        for index, glyph in enumerate(self._tab_glyphs):
+            self.tabs.setTabIcon(index, icons.icon(glyph, t, theme.ICON_TITLE))
+        self.browse.setIcon(icons.icon("folder", t, theme.ICON_INLINE))
 
     def showEvent(self, event) -> None:  # noqa: N802 (Qt override)
         super().showEvent(event)
@@ -333,7 +345,8 @@ class SettingsDialog(QDialog):
         folder_row = QHBoxLayout()
         self.rec_folder = QLineEdit(rec.folder)
         self.rec_folder.setPlaceholderText("Videos\\Overmark")
-        browse = QPushButton("Browse…")
+        self.browse = browse = QPushButton("Browse…")
+        browse.setIconSize(QSize(theme.ICON_INLINE, theme.ICON_INLINE))
         browse.clicked.connect(self._pick_folder)
         folder_row.addWidget(self.rec_folder, 1)
         folder_row.addWidget(browse)
@@ -484,8 +497,11 @@ class SettingsDialog(QDialog):
 
     def _show_color(self, color: str) -> None:
         self.color_button.setText(color)
-        text = "#111111" if QColor(color).lightnessF() > 0.5 else "#ffffff"
-        self.color_button.setStyleSheet(f"background: {color}; color: {text}; border-radius: 12px;")
+        # Light text on dark ink and dark text on light ink, whatever the window theme.
+        text = theme.LIGHT["fg"] if QColor(color).lightnessF() > 0.5 else theme.DARK["fg"]
+        self.color_button.setStyleSheet(
+            f"background: {color}; color: {text}; border-radius: {theme.RADIUS_MD}px;"
+        )
 
     def _pick_color(self) -> None:
         preset = self.draft.presets[self.preset_pick.currentIndex()]
