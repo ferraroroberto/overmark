@@ -27,6 +27,12 @@ class Microphone:
 
 
 @dataclass
+class SystemAudio:
+    enabled: bool = False
+    device: str = ""  # a loopback device name; empty means the default output's loopback
+
+
+@dataclass
 class RecordingOptions:
     folder: str = ""  # empty means the user's Videos folder plus "Overmark"
     name_pattern: str = DEFAULT_PATTERN
@@ -38,6 +44,7 @@ class RecordingOptions:
     cursor: bool = True
     include_ink: bool = True
     microphone: Microphone = field(default_factory=Microphone)
+    system_audio: SystemAudio = field(default_factory=SystemAudio)
     backend: str = "auto"
     ffmpeg_path: str = ""  # empty means look ffmpeg up on PATH
 
@@ -78,16 +85,31 @@ def _choice(raw: dict, key: str, choices: tuple, default: Any) -> Any:
     return default
 
 
-def _text(raw: dict, key: str, default: str) -> str:
+def _text(raw: dict, key: str, default: str, label: str | None = None) -> str:
     value = raw.get(key, default)
     if isinstance(value, str):
         return value.strip()
-    log.warning("⚠️ config: recording.%s=%r is not text; using %r", key, value, default)
+    log.warning("⚠️ config: recording.%s=%r is not text; using %r", label or key, value, default)
     return default
 
 
-def _flag(value: Any, default: bool) -> bool:
-    return value if isinstance(value, bool) else default
+def _flag(raw: dict, key: str, default: bool, label: str | None = None) -> bool:
+    value = raw.get(key, default)
+    if isinstance(value, bool):
+        return value
+    log.warning(
+        "⚠️ config: recording.%s=%r is not true or false; using %r", label or key, value, default
+    )
+    return default
+
+
+def _block(raw: dict, key: str) -> dict:
+    """A nested block such as ``microphone``; anything but an object falls back whole."""
+    value = raw.get(key, {})
+    if isinstance(value, dict):
+        return value
+    log.warning("⚠️ config: recording.%s=%r is not an object; using the defaults", key, value)
+    return {}
 
 
 def options_from_dict(raw: Any) -> RecordingOptions:
@@ -107,8 +129,8 @@ def options_from_dict(raw: Any) -> RecordingOptions:
             )
             return default
 
-    mic_raw = raw.get("microphone") if isinstance(raw.get("microphone"), dict) else {}
-    mic_device = mic_raw.get("device", "")
+    mic_raw = _block(raw, "microphone")
+    sys_raw = _block(raw, "system_audio")
     return RecordingOptions(
         folder=_text(raw, "folder", base.folder),
         name_pattern=checked(validate_pattern, "name_pattern", base.name_pattern),
@@ -117,11 +139,15 @@ def options_from_dict(raw: Any) -> RecordingOptions:
         bitrate_kbps=checked(parse_bitrate, "bitrate_kbps", base.bitrate_kbps),
         frame_rate=_choice(raw, "frame_rate", FRAME_RATES, base.frame_rate),
         screen=checked(parse_screen, "screen", base.screen),
-        cursor=_flag(raw.get("cursor"), base.cursor),
-        include_ink=_flag(raw.get("include_ink"), base.include_ink),
+        cursor=_flag(raw, "cursor", base.cursor),
+        include_ink=_flag(raw, "include_ink", base.include_ink),
         microphone=Microphone(
-            enabled=_flag(mic_raw.get("enabled"), False),
-            device=mic_device.strip() if isinstance(mic_device, str) else "",
+            enabled=_flag(mic_raw, "enabled", False, "microphone.enabled"),
+            device=_text(mic_raw, "device", "", "microphone.device"),
+        ),
+        system_audio=SystemAudio(
+            enabled=_flag(sys_raw, "enabled", False, "system_audio.enabled"),
+            device=_text(sys_raw, "device", "", "system_audio.device"),
         ),
         backend=_choice(raw, "backend", BACKENDS, base.backend),
         ffmpeg_path=_text(raw, "ffmpeg_path", base.ffmpeg_path),
@@ -142,6 +168,10 @@ def options_to_dict(options: RecordingOptions) -> dict[str, Any]:
         "microphone": {
             "enabled": options.microphone.enabled,
             "device": options.microphone.device,
+        },
+        "system_audio": {
+            "enabled": options.system_audio.enabled,
+            "device": options.system_audio.device,
         },
         "backend": options.backend,
         "ffmpeg_path": options.ffmpeg_path,

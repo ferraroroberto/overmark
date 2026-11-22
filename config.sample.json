@@ -149,6 +149,10 @@
       "enabled": false,
       "device": ""
     },
+    "system_audio": {
+      "enabled": false,
+      "device": ""
+    },
     "backend": "auto",
     "ffmpeg_path": ""
   }

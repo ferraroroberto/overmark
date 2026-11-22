@@ -23,6 +23,7 @@ from overmark.keepawake import POLL_MS, KeepAwakeEngine
 from overmark.keymap import parse_hotkey
 from overmark.overlay import OverlayWindow, screen_under_cursor
 from overmark.recording.controls import RecordingControls, list_microphones
+from overmark.recording.loopback import list_loopback_devices
 from overmark.recording.monitors import describe
 from overmark.recording.segments import State
 from overmark.settings_dialog import SettingsDialog
@@ -242,6 +243,7 @@ class OvermarkApp:
             self.controller.settings,
             self.apply_settings,
             list_microphones=list_microphones,
+            list_system_audio=list_loopback_devices,
             screen_labels=describe(win32.display_outputs()),
         )
         self.settings_dialog.show()

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from overmark.recording.command import DDAGRAB, GDIGRAB, CapturePlan
+from overmark.recording.loopback import Capture, LoopbackError
 from overmark.recording.monitors import Monitor
 from overmark.recording.segments import State
 from overmark.recording.session import Recorder, RecordingError, explain_failure
@@ -85,6 +86,8 @@ class FakeFfmpeg:
         return proc
 
     def run(self, cmd, **kwargs):
+        if "concat" not in cmd:  # the length probe of one segment
+            return subprocess.CompletedProcess(cmd, 1, b"", b"  Duration: 00:00:04.00, start")
         self.joins.append(cmd)
         Path(cmd[-1]).write_bytes(b"joined")
         return subprocess.CompletedProcess(cmd, 0, b"", b"")
@@ -193,3 +196,104 @@ def test_a_failed_join_keeps_the_segments(tmp_path: Path) -> None:
 )
 def test_explain_failure(lines: list[str], expected: str) -> None:
     assert explain_failure(lines) == expected
+
+
+class FakeCapture:
+    """Stands in for the loopback capture: writes its WAV on start, origin from a counter."""
+
+    starts: list["FakeCapture"] = []
+
+    def __init__(self, path: Path, device: str, fails: bool = False) -> None:
+        self.path, self.device, self.fails = path, device, fails
+        self.stopped = False
+
+    def start(self) -> None:
+        if self.fails:
+            raise LoopbackError("the system-audio device was not found; pick another in Settings")
+        self.path.write_bytes(b"wav")
+        FakeCapture.starts.append(self)
+
+    def stop(self) -> Capture:
+        self.stopped = True
+        return Capture(self.path, origin=10.0)
+
+
+class StampingFfmpeg(FakeFfmpeg):
+    """Logs the first-frame stamp: 10.3 s on the wall clock, wall = perf + 0 in these tests."""
+
+    def popen(self, cmd, **kwargs):
+        kwargs["stderr"].write(b"[Eval @ 0000001] 10300000.000000\n")
+        kwargs["stderr"].flush()
+        return super().popen(cmd, **kwargs)
+
+
+def system_recorder(tmp_path: Path, ffmpeg: FakeFfmpeg, *, mic: bool, fails=False) -> Recorder:
+    base = plan(DDAGRAB)
+    with_audio = CapturePlan(
+        **{**base.__dict__, "system_audio": "", "microphone": "Desk Mic" if mic else None}
+    )
+    return Recorder(
+        "ffmpeg",
+        [with_audio],
+        tmp_path / "talk.mp4",
+        popen=ffmpeg.popen,
+        run=ffmpeg.run,
+        startup_grace_s=0.05,
+        loopback=lambda path, device: FakeCapture(path, device, fails),
+        wall_minus_perf=lambda: 0.0,
+    )
+
+
+@pytest.mark.parametrize("mic", [False, True])
+def test_system_audio_is_captured_per_segment_and_mixed_on_stop(tmp_path: Path, mic) -> None:
+    FakeCapture.starts.clear()
+    ffmpeg = StampingFfmpeg()
+    rec = system_recorder(tmp_path, ffmpeg, mic=mic)
+    rec.start()
+    rec.pause()
+    rec.resume()
+    rec.pause()
+    rec.resume()
+    rec.stop()
+    assert [c.path.name for c in FakeCapture.starts] == [
+        ".talk.part1.wav",
+        ".talk.part2.wav",
+        ".talk.part3.wav",
+    ]
+    assert all(c.stopped for c in FakeCapture.starts)
+    g = ffmpeg.joins[0][ffmpeg.joins[0].index("-filter_complex") + 1]
+    assert g.count("atrim=start=0.300000") == 3  # first frame 0.3 s into each WAV
+    assert g.count("apad=whole_dur=4.000000") == 3
+    assert ("amix" in g) is mic
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["talk.mp4"]
+
+
+def test_a_failed_join_keeps_part_files_and_wavs(tmp_path: Path) -> None:
+    class FailingJoin(StampingFfmpeg):
+        def run(self, cmd, **kwargs):
+            if "concat" in cmd:
+                return subprocess.CompletedProcess(cmd, 1, b"", b"Invalid data found")
+            return super().run(cmd, **kwargs)
+
+    rec = system_recorder(tmp_path, FailingJoin(), mic=False)
+    rec.start()
+    with pytest.raises(RecordingError, match="part files"):
+        rec.stop()
+    assert sorted(p.name for p in tmp_path.iterdir()) == [".talk.part1.mkv", ".talk.part1.wav"]
+
+
+def test_a_system_audio_failure_stops_the_start_before_ffmpeg(tmp_path: Path) -> None:
+    ffmpeg = StampingFfmpeg()
+    rec = system_recorder(tmp_path, ffmpeg, mic=False, fails=True)
+    with pytest.raises(RecordingError, match="system-audio device was not found"):
+        rec.start()
+    assert ffmpeg.procs == []
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_a_failed_ffmpeg_start_removes_the_segment_wav(tmp_path: Path) -> None:
+    ffmpeg = StampingFfmpeg(fail_backends={DDAGRAB}, fail_message="boom")
+    rec = system_recorder(tmp_path, ffmpeg, mic=False)
+    with pytest.raises(RecordingError):
+        rec.start()
+    assert list(tmp_path.iterdir()) == []

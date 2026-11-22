@@ -48,4 +48,21 @@ Also checked:
 - **Mixed DPI.** Positions come from DXGI in physical pixels and the app is per-monitor DPI aware, so `ddagrab` should line up; `gdigrab` scales with the desktop DPI and may not. Needs a pair of monitors at different scales.
 - **A second graphics adapter.** `ddagrab` only reaches the default adapter's outputs; a screen on another adapter is routed to `gdigrab`. Not exercised.
 - **Long recordings and 60 fps on all screens.** Only short runs were made; CPU and disk load over an hour at 3840×2160 is the owner's check.
-- **System audio** is not part of this step.
+- **System audio on other machines.** Sync and drift (below) were measured on one machine with one output device; a device with a worse clock relies on the 30 ms re-placement rule, which was unit-tested but not driven by a real drifting device.
+
+## System audio
+
+PyAudioWPatch captures the default output's WASAPI loopback into one WAV per segment; the join lines each WAV up with its segment and mixes it in. Measured with a harness that flashes a small on-screen square and plays a 1 kHz beep at the same moment, recorded through the real recorder (`ddagrab`, NVENC, 60 fps), then compared beep onsets with flash frames:
+
+| Check | Result |
+|---|---|
+| Two pauses, three parts, a cue every second | 23 cues matched; audio 7 to 54 ms ahead of the picture (mean 26 ms) in every part |
+| 5 minutes, a cue every 10 s | 30 of 30 matched; 17 to 57 ms ahead (mean 34 ms) |
+| 30.5 minutes, a cue every minute | 30 of 30 matched; 23 to 77 ms ahead (mean 52 ms), no growing trend; the last cue, at 29:59, 43 ms ahead |
+| Tracks (`ffprobe`) | system audio only: one AAC track; with the microphone: one mixed AAC track; both off: video only |
+
+Findings that shaped the build:
+
+- **WASAPI loopback delivers nothing while nothing plays.** An idle output gave zero callbacks, so chunks are placed on `perf_counter` rather than appended: a gap becomes silence, and audio more than 30 ms ahead of the clock is dropped. A WAV therefore always spans the wall-clock time it covers.
+- **ffmpeg resets segment timestamps to zero**, also with `-copyts` for `ddagrab`, and its first frame lands 0.3 to 1.5 s after launch (longer with a DirectShow microphone). Each segment's filter graph therefore logs the wall-clock time of its first frame (`setpts` with `print(RTCTIME)`), which is the anchor the WAV is trimmed to.
+- **Audio leads the picture by 20 to 80 ms.** That is the display path (render, present, capture) against the audio path; it is well inside the 100 ms budget, so no fixed correction is applied.
