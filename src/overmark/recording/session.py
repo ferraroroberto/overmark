@@ -27,6 +27,7 @@ from overmark.recording.command import (
     probe_command,
     segment_command,
 )
+from overmark.recording.containment import contain
 from overmark.recording.loopback import Capture, LoopbackCapture, LoopbackError
 from overmark.recording.naming import joining_path, system_audio_path
 from overmark.recording.segments import Segments, State
@@ -294,6 +295,7 @@ class Recorder:
             self._drop_capture()
             self.segments.abandon_current()
             raise RecordingError(f"ffmpeg could not be started ({exc})") from None
+        contain(self._proc)
         deadline = time.monotonic() + self._startup_grace_s
         while time.monotonic() < deadline:
             if self._proc.poll() is not None:
