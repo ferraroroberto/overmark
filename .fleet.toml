@@ -1,7 +1,9 @@
 layer       = "enabling"
 icon        = "🖍️"
 description = "Screen annotation for live facilitation, with the controls hidden from capture."
+port        = ":8467"
 depends_on  = ["project-scaffolding"]
 
 [vendored]
 icons = { src = "app/webapp/static/_vendored/icons", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/_vendored/icons" }
+single_instance = { src = "app/tray/single_instance.py", sha = "160b54e2e0bcf76541d0a5f9bb4d6265dd493c31", dest = "src/overmark/_vendored/single_instance.py" }
