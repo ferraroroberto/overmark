@@ -27,6 +27,8 @@ run_ratchets = { src = "scripts/run_ratchets.py", sha = "4952ab7d1b1528548ebedaf
 synthetic_host = { src = "tests/host/_synthetic_host.py", sha = "160b54e2e0bcf76541d0a5f9bb4d6265dd493c31", dest = "tests/host/_synthetic_host.py" }
 icons = { src = "app/webapp/static/_vendored/icons", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/_vendored/icons" }
 single_instance = { src = "app/tray/single_instance.py", sha = "160b54e2e0bcf76541d0a5f9bb4d6265dd493c31", dest = "src/overmark/_vendored/single_instance.py" }
+build_info = { src = "src/build_info.py", sha = "db08b78dabcd817616ca4fc2954035466d2435d7", dest = "src/build_info.py" }
+restart_check = { src = "src/restart_check.py", sha = "db08b78dabcd817616ca4fc2954035466d2435d7", dest = "src/restart_check.py" }
 
 [static_ratchet]
 enabled = true
