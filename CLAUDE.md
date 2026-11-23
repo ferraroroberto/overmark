@@ -13,7 +13,7 @@ Overmark: a public Windows screen-annotation app for live facilitation. Python +
 
 ## Start and restart
 
-`tray.bat` starts the tray with no console (a second start is a no-op: single-instance mutex in `app.py`); `tray.bat --restart` stops the running tray by pid, reclaims the build-probe port 8467, starts a fresh one and fails unless a new process serves `HEAD` (the tray answers `GET http://127.0.0.1:8467/api/version`, see `src/overmark/buildprobe.py`). Run it from PowerShell or a real Windows shell, never `cmd.exe /c` from Git Bash. `--restart` needs `~/.claude/tray/tray_lifecycle.ps1` (fleet-config's `install.ps1`). Restart after any change under `src/`; `config.json` edits take effect on restart too. `scripts/run.ps1 -Console` is for debugging only.
+`tray.bat` starts the tray with no console (a second start is a no-op: single-instance mutex in `app.py`); `.\tray.bat --restart` (PowerShell; `./tray.bat --restart` in Git Bash; the bare name is found by no shell here) stops the running tray by pid, reclaims the build-probe port 8467, starts a fresh one and fails unless a new process serves `HEAD` (the tray answers `GET http://127.0.0.1:8467/api/version`, see `src/overmark/buildprobe.py`). Run it from PowerShell or a real Windows shell, never `cmd.exe /c` from Git Bash. `--restart` needs `~/.claude/tray/tray_lifecycle.ps1` (fleet-config's `install.ps1`). Restart after any change under `src/`; `config.json` edits take effect on restart too. `scripts/run.ps1 -Console` is for debugging only.
 
 ## Verification gate
 
