@@ -18,7 +18,9 @@
 /scripts/structure_band.py
 /scripts/structure_layout.py
 /scripts/structure_ratchet.py
+/src/build_info.py
 /src/overmark/_vendored/icons
 /src/overmark/_vendored/single_instance.py
+/src/restart_check.py
 /tests/host/_synthetic_host.py
 # END vendored-copies
