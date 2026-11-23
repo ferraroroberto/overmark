@@ -40,7 +40,6 @@ STOP_WAIT_S = 5.0  # time for ffmpeg to flush and close its file after "q"
 KILL_WAIT_S = 2.0
 JOIN_TIMEOUT_S = 600.0  # stream copy runs at disk speed; hours of video still fit
 PROBE_TIMEOUT_S = 30.0  # reads one file header
-POLL_S = 0.1
 LOG_TAIL_LINES = 6
 
 
@@ -296,18 +295,18 @@ class Recorder:
             self.segments.abandon_current()
             raise RecordingError(f"ffmpeg could not be started ({exc})") from None
         contain(self._proc)
-        deadline = time.monotonic() + self._startup_grace_s
-        while time.monotonic() < deadline:
-            if self._proc.poll() is not None:
-                self._proc = None
-                self._close_log()
-                self._drop_capture()
-                out.unlink(missing_ok=True)
-                self.segments.abandon_current()
-                lines = _tail(log_path)
-                log.warning("⚠️ %s capture did not start: %s", self.plan.backend, " | ".join(lines))
-                raise RecordingError(explain_failure(lines))
-            time.sleep(POLL_S)
+        try:
+            self._proc.wait(timeout=self._startup_grace_s)
+        except subprocess.TimeoutExpired:
+            return  # still running when the grace ended, so the capture started
+        self._proc = None
+        self._close_log()
+        self._drop_capture()
+        out.unlink(missing_ok=True)
+        self.segments.abandon_current()
+        lines = _tail(log_path)
+        log.warning("⚠️ %s capture did not start: %s", self.plan.backend, " | ".join(lines))
+        raise RecordingError(explain_failure(lines))
 
     def _end_segment(self) -> bool:
         """Stop the running ffmpeg: "q", a bounded wait, then terminate. True if a file is left."""
