@@ -29,7 +29,7 @@ On a fresh PC the checklist can still ask for:
 - **Recording: ffmpeg** (`missing` until ffmpeg is installed; everything but recording works without it).
 - **Restart helper** (`missing` without `fleet-config`; then restart by quitting from the tray menu and running `.\tray.bat`).
 
-`.\setup.bat -WhatIf` lists every change it would make and makes none. To check the result without changing anything, run it after the install.
+`.\setup.bat -WhatIf` lists every change it would make, makes none, and prints the same checklist.
 
 **Start at log on** is not registered by `setup.bat` (`-Startup` only reports that). Put a shortcut to `tray.bat` in the Startup folder (`Win+R`, `shell:startup`), or register the folder in the app launcher.
 
