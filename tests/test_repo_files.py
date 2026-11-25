@@ -31,4 +31,5 @@ def test_sample_config_matches_the_agreed_settings() -> None:
 def test_runtime_config_is_ignored() -> None:
     ignored = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     assert "config.json" in ignored
+    assert "config.json.bak-*" in ignored, "setup.bat writes this backup beside config.json"
     assert ".venv/" in ignored

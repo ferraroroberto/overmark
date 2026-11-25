@@ -76,12 +76,16 @@ Recording needs [ffmpeg](https://ffmpeg.org/download.html) on `PATH` (or `record
 
 H.264 uses the first hardware encoder that passes a one-frame test (NVIDIA, Intel, AMD), else `libx264`. Pause ends a segment and resume starts the next; about a second around each pause is not recorded, and stop joins the segments into one file without re-encoding the video. System audio is captured beside each segment as `.<name>.part<N>.wav` (ffmpeg on Windows cannot record it, so [PyAudioWPatch](https://pypi.org/project/PyAudioWPatch/) does) and mixed in on stop: with the microphone also on, the two become one track, and only the audio is re-encoded. While recording, the segments are `.<name>.part<N>.mkv` files (plus their WAVs) in the destination folder, so an interrupted recording never looks finished; they can still be played or joined by hand. ffmpeg runs in a kill-on-close Windows job object, so if Overmark itself dies mid-recording (a crash, a kill, a forced log-off) the OS ends ffmpeg too; the segments written so far stay on disk. Each saved recording writes one log line with the screen choice, duration, size and encoder. If a hotkey does nothing, another application may be intercepting it even though registration succeeded; pick another combo. The capture checks behind this are in [docs/recording-probe.md](docs/recording-probe.md).
 
+## Install
+
+Clone and run `setup.bat`. Fresh PC, update, migration from an older copy and uninstall: [docs/install.md](docs/install.md).
+
 ## Run
 
 ```powershell
-.	ray.bat             # start the tray app, no console; a second start does nothing
-.	ray.bat --restart   # stop the running instance, start a fresh one, confirm the new build
-.	ray.bat -r          # same
+.\tray.bat             # start the tray app, no console; a second start does nothing
+.\tray.bat --restart   # stop the running instance, start a fresh one, confirm the new build
+.\tray.bat -r          # same
 powershell -File scripts/run.ps1 -Console   # run in the console with the log, for debugging
 ```
 
