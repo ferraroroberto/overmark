@@ -20,6 +20,7 @@
 /scripts/structure_layout.py
 /scripts/structure_ratchet.py
 /src/build_info.py
+/src/installer.py
 /src/overmark/_vendored/icons
 /src/overmark/_vendored/single_instance.py
 /src/restart_check.py
