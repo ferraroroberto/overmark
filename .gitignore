@@ -9,6 +9,8 @@ __pycache__/
 .env
 config.json
 config.json.tmp
+# setup.bat's backup of config.json, taken before it adds missing keys.
+config.json.bak-*
 # Scratch and runtime output: never beside the code
 tmp/
 .tmp/
