@@ -23,6 +23,7 @@
 /src/installer.py
 /src/overmark/_vendored/icons
 /src/overmark/_vendored/single_instance.py
+/src/ps_script.py
 /src/restart_check.py
 /tests/host/_synthetic_host.py
 # END vendored-copies
