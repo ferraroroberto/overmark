@@ -67,5 +67,5 @@ def test_tray_bat_reclaims_the_probe_port_and_launches_the_package() -> None:
     text = (ROOT / "tray.bat").read_bytes().decode("ascii")
     assert f'set "OWNED_PORTS={buildprobe.VERSION_PORT}"' in text
     assert 'set "TRAY_LAUNCH=-m overmark"' in text
-    assert re.search(r'-TrayMatch "-m\\s\+overmark"', text)
+    assert 'set "TRAY_MATCH=-m\\s+overmark"' in text
     assert "__" not in text.replace("__PLACEHOLDER__", "")

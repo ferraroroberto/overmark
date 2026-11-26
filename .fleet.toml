@@ -31,6 +31,7 @@ build_info = { src = "src/build_info.py", sha = "db08b78dabcd817616ca4fc29540354
 restart_check = { src = "src/restart_check.py", sha = "f8c2f66eae7a69f3c834386579702ed5b747d7af", dest = "src/restart_check.py" }
 ratchet_baseline = { src = "scripts/ratchet_baseline.py", sha = "48db2132dab2dfc38b6154948ca17fd1f4b9232f", dest = "scripts/ratchet_baseline.py" }
 installer = { src = "src/installer.py", sha = "bafa9446b907dcb7fc6d833c1edfb1a069b7ca38", dest = "src/installer.py" }
+ps_script = { src = "src/ps_script.py", sha = "2d786d295c9b8d545aaf35703889638096f251ad", dest = "src/ps_script.py" }
 
 # What setup.bat (src/installer.py) installs and checks. No registries and no autostart: config.json
 # is the one local file, and starting at log on is a manual shortcut (docs/install.md).

@@ -4,13 +4,14 @@
 |---|---|
 | `src/overmark/` | application code, below |
 | `src/build_info.py`, `src/restart_check.py` | project-scaffolding's one-command tray restart (`python -m src.restart_check restart --port 8467`) and the git-identity helper it imports; byte-for-byte copies that import each other as `src.build_info`, so they sit directly in `src/` beside the package (a namespace package, no `__init__.py`), never inside it |
+| `src/ps_script.py` | project-scaffolding's PowerShell launcher (a byte-for-byte copy): `tray.bat` starts the shared tray helper through it, under any execution policy and without overriding it |
 | `src/installer.py`, `setup.bat` | project-scaffolding's clone-and-setup installer (a byte-for-byte copy, pinned in `.fleet.toml` `[vendored]`) and its launcher; what it installs and checks is `.fleet.toml` `[install]`, and the playbook is [install.md](install.md) |
 | `tests/` | pytest suite; invented fixtures only |
 | `scripts/` | the verification gate and helper scripts, including `install_check.py`, the installer's checklist probes |
 | `docs/` | durable reference (this file, design records) |
 | `config.sample.json` | committed settings template; the live `config.json` is git-ignored |
 
-`_vendored/icons/icons-sprite.html` is the Lucide sprite from project-scaffolding's icon component, and `_vendored/single_instance.py` its Windows single-instance primitive, both copied byte-for-byte (pinned in `.fleet.toml` `[vendored]`); never edit them here. The same holds for the ratchet scripts and their `run_ratchets.py` runner in `scripts/` (each with its `.<name>-ratchet-baseline.json` at the root) and for `tests/host/_synthetic_host.py`, the fixture that fakes the account name, home folder and interpreter path for tests; ruff skips these copies and the three in `src/` (`extend-exclude` in `pyproject.toml`). `tray.bat` at the root is project-scaffolding's `tray.bat.template` with its four tokens filled (plus one `PYTHONPATH` line, because the package is not pip-installed).
+`_vendored/icons/icons-sprite.html` is the Lucide sprite from project-scaffolding's icon component, and `_vendored/single_instance.py` its Windows single-instance primitive, both copied byte-for-byte (pinned in `.fleet.toml` `[vendored]`); never edit them here. The same holds for the ratchet scripts and their `run_ratchets.py` runner in `scripts/` (each with its `.<name>-ratchet-baseline.json` at the root) and for `tests/host/_synthetic_host.py`, the fixture that fakes the account name, home folder and interpreter path for tests; ruff skips these copies and the four in `src/` (`extend-exclude` in `pyproject.toml`). `tray.bat` at the root is project-scaffolding's `tray.bat.template` with its four tokens filled (plus one `PYTHONPATH` line, because the package is not pip-installed).
 
 New code goes under `src/overmark/` in a subject subfolder as it grows; tests mirror it under `tests/`.
 
