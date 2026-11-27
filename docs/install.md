@@ -59,15 +59,16 @@ Overmark rewrites no tracked file while it runs (`config.json` and its temporary
 
 What moves is declared in `[install.migrate]` of `.fleet.toml`, and it is one file: `config.json` (hotkeys, presets, sizes, key map, keep-awake, recording and toolbar settings). Overmark keeps no database, certificate or secret, reads no `.env` and shares no runtime-data folder. The installer does the whole move; nothing here or in `setup.bat` deletes the old copy.
 
-**Reinstall in the same folder (the usual case).** The folder must be a git clone. From a terminal whose current folder is outside the app:
+**Reinstall in the same folder (the usual case).** It works whatever version the installed copy is, because it runs from a fresh clone and never runs the old copy's code. The installed folder must be a git clone. Run these in order from `<root>`, the folder that holds the app's folder (`overmark` below):
 
 ```powershell
-cd <parent folder>
-.\overmark\setup.bat -InPlace -WhatIf    # read the backup name and every step; nothing changes
-.\overmark\setup.bat -InPlace
+cd <root>
+git clone <repository URL> overmark.incoming          # git -C overmark remote get-url origin prints the URL; run nothing in the clone yet
+.\overmark.incoming\setup.bat -Replace overmark -WhatIf   # read the backup name and every step; nothing changes
+.\overmark.incoming\setup.bat -Replace overmark
 ```
 
-It stops Overmark, keeps the replaced copy as `<folder>.bak-YYYYMMDD-N`, clones the folder's `origin` into the same path, copies `config.json`, installs, starts the tray and passes only when the build probe on port 8467 serves the new clone's commit from a process in that clone. The path is unchanged, so a Startup shortcut or an app launcher entry needs no edit.
+It stops Overmark, renames `overmark` to `overmark.bak-YYYYMMDD-N` (uncommitted edits stay there), moves `overmark.incoming` to `overmark`, copies `config.json`, installs, starts the tray and passes only when the build probe on port 8467 serves the new clone's commit from a process in that clone. The path is unchanged, so a Startup shortcut or an app launcher entry needs no edit. On a copy whose `setup.bat` already has `-InPlace`, `.\overmark\setup.bat -InPlace` does the same and makes the clone itself.
 
 **Beside it (another folder, or an old copy that is not a git clone):**
 
@@ -77,7 +78,7 @@ cd <new folder>
 .\setup.bat -MigrateFrom <old folder> -StopOld
 ```
 
-`-StopOld` is needed on the same PC: only one Overmark runs at a time. Add `-WhatIf` to either command to see every step without any change.
+`-StopOld` is needed on the same PC: only one Overmark runs at a time. Add `-WhatIf` to see every step without any change.
 
 Only you can do these steps:
 

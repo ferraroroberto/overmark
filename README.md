@@ -103,7 +103,7 @@ H.264 uses the first hardware encoder that passes a one-frame test (NVIDIA, Inte
 
 ## Install
 
-Clone and run `setup.bat`. `setup.bat -InPlace` reinstalls a clone at the same path and `setup.bat -MigrateFrom <old folder>` moves an older copy into a fresh one. Fresh PC, update, migration and uninstall: [docs/install.md](docs/install.md).
+Clone and run `setup.bat`. `setup.bat -Replace <install>`, run from a fresh clone beside it, reinstalls any older copy at the same path, and `setup.bat -MigrateFrom <old folder>` moves an older copy into a fresh one. Fresh PC, update, migration and uninstall: [docs/install.md](docs/install.md).
 
 ## Run
 
