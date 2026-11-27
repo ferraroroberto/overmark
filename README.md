@@ -11,7 +11,7 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - A tray app with one global hotkey (`Ctrl+Alt+D` by default, rebindable in Settings) that toggles between drawing and click-through. Ink stays visible while you click through to the application underneath.
 - Every monitor at once: one transparent overlay per screen, sharing one drawing in desktop coordinates, so a stroke can cross from one monitor to the next.
 - Tools: pen, highlighter (translucent, drawn under other ink), arrow, text label (click, type, `Enter`; `Shift+Enter` for a new line), laser (hold `L`: a dot with a short fading trail, never stored or undone, system cursor hidden), undo, clear.
-- Seven presets (colour, thickness, transparency on/off and amount, outline on/off and thickness): keys `1` to `7`, or the mouse wheel over the toolbar.
+- Seven presets (colour, thickness, transparency on/off and amount, outline on/off and thickness): keys `1` to `7`, the mouse wheel over the toolbar, or a [global hotkey](#global-hotkeys) of your own per preset.
 - Fading is a setting: on or off plus a delay in seconds; strokes then ease out over about 0.6 s. `F` pins the ink on screen so it stops fading.
 - The toolbar (a pill that collapses to a small handle and expands on hover) can be moved: press anywhere on it and drag it to any screen. It stays where you drop it, remembered per screen layout, with the collapsed handle at the middle of where you left the pill; a click without a drag still works the button under the pointer.
 - The toolbar and the cheat-sheet are excluded from screen capture.
@@ -21,6 +21,17 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - Settings is a web page: Settings in the tray menu or on the toolbar opens `http://127.0.0.1:8467/` in the browser (see [Settings](#settings)).
 - The toolbar, cheat-sheet, recording chip and tray menu follow the fleet design system in light and dark, switching with the Windows theme, with Lucide icons throughout ([docs/design-tokens.md](docs/design-tokens.md)); the settings page is built from the fleet's vendored web components.
 - Mouse, touch and pen share one input path; pen pressure varies the width and the pen's eraser end (or barrel button) erases whole strokes.
+
+## Global hotkeys
+
+| Key | Action |
+|---|---|
+| `Ctrl+Alt+D` | draw on and off |
+| `Ctrl+Alt+F9` | start and stop recording |
+| `Ctrl+Alt+F10` | pause and resume recording |
+| unset, one per preset | pick preset 1 to 7 and start drawing |
+
+These work in any application, and each is set in Settings. A hotkey that clashes with another one or with an in-draw key is refused. One that Windows will not register (another program holds it) is refused when you save it, and named in a notification when Overmark starts.
 
 ## Keys while drawing
 
@@ -35,11 +46,11 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 | `?` | cheat-sheet |
 | `Esc` | stop drawing (ink stays); a second `Esc` within a second clears |
 
-Keys reach the app only while drawing, so they never collide with the application underneath. All of them are rebindable in `config.json` (`keys`); the draw hotkey is also rebindable in Settings.
+Keys reach the app only while drawing, so they never collide with the application underneath. All of them are rebindable in `config.json` (`keys`).
 
 ## Settings
 
-Settings in the tray menu or on the toolbar stops drawing and opens the settings page in the default browser. It is one page of grouped sections: Drawing (cover all screens, fading), Presets, Hotkeys (the three global hotkeys, each set by pressing the combination, and the in-draw keys, shown read-only), Recording, Recording file, Recording audio, Keep-awake, Display (text size) and About. A sun or moon button in the header switches the page between light and dark.
+Settings in the tray menu or on the toolbar stops drawing and opens the settings page in the default browser. It is one page of grouped sections: Drawing (cover all screens, fading), Presets, Hotkeys (the draw and recording hotkeys, each set by pressing the combination, and the in-draw keys, shown read-only), Preset hotkeys (one optional hotkey per preset, with Clear), Recording, Recording file, Recording audio, Keep-awake, Display (text size) and About. A sun or moon button in the header switches the page between light and dark.
 
 Every change is saved to `config.json` and applied to the running app at once; nothing needs a restart. A change the app refuses changes nothing and says why: a hotkey that clashes with another hotkey or an in-draw key, a hotkey another program already holds, an invalid keep-awake interval or file-name pattern, or the microphone on with no device. The folder row's Browse opens a folder picker on this PC.
 
@@ -64,6 +75,7 @@ The page is served by the tray itself (FastAPI on port 8467, bound to 127.0.0.1)
 | `keep_awake.distance_px` | nudge mode: pixels moved out and back, 1 to 20 (default 1) |
 | `keys` | the in-draw key for each action |
 | `hotkey.record_toggle`, `hotkey.record_pause` | global recording hotkeys (default `ctrl+alt+f9`, `ctrl+alt+f10`) |
+| `hotkey.preset_1` to `hotkey.preset_7` | a global hotkey per preset that picks it and starts drawing; empty (default) for none |
 | `recording` | recording settings; see [Recording](#recording) |
 | `toolbar.positions` | where the toolbar was dragged: one `[x, y]` (its top centre) per screen layout, written by the app. Delete an entry to return to the default top centre; a point that is on no screen is ignored |
 

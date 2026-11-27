@@ -67,6 +67,16 @@ def test_invalid_values_fall_back_per_key() -> None:
     assert "teleport" not in s.keys
 
 
+def test_preset_hotkeys_round_trip_and_a_bad_one_stays_unset() -> None:
+    raw = settings_to_dict(Settings())
+    del raw["hotkey"]["preset_1"]  # a config written before preset hotkeys existed
+    raw["hotkey"]["preset_2"] = "Alt+Ctrl+2"
+    raw["hotkey"]["preset_3"] = "3"  # no modifier: not allowed globally
+    s = settings_from_dict(raw)
+    assert s.preset_hotkeys == ["", "ctrl+alt+2", "", "", "", "", ""]
+    assert settings_from_dict(settings_to_dict(s)) == s
+
+
 def test_short_preset_list_is_padded_with_defaults() -> None:
     raw = settings_to_dict(Settings())
     raw["presets"] = raw["presets"][:2]

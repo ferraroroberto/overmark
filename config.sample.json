@@ -2,7 +2,14 @@
   "hotkey": {
     "toggle_draw": "ctrl+alt+d",
     "record_toggle": "ctrl+alt+f9",
-    "record_pause": "ctrl+alt+f10"
+    "record_pause": "ctrl+alt+f10",
+    "preset_1": "",
+    "preset_2": "",
+    "preset_3": "",
+    "preset_4": "",
+    "preset_5": "",
+    "preset_6": "",
+    "preset_7": ""
   },
   "screens": {
     "cover_all": true

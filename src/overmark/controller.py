@@ -127,6 +127,11 @@ class Controller(QObject):
             self._restyle_editing()
             self.tool_changed.emit()
 
+    def draw_with_preset(self, index: int) -> None:
+        """A preset's global hotkey: pick the preset and start drawing, from anywhere."""
+        self.select_preset(index)
+        self.set_drawing(True)
+
     def step_preset(self, delta: int) -> None:
         self.cycler.step(delta)
         self._restyle_editing()

@@ -148,6 +148,8 @@ body {
   letter-spacing: 0.02em;
 }
 
+#hotkeyClear { margin-top: var(--space-sm); }
+
 .detail-card .row .input-native[type="color"] {
   min-width: 0;
   width: 88px;

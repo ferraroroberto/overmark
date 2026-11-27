@@ -1,8 +1,9 @@
 """What the settings page reads and how a save from it is checked. Pure Python, no Qt.
 
 A save carries the whole ``config.json`` shape. It gets the same checks the settings
-window ran before the page replaced it: every hotkey must parse, no two hotkeys may share
-a combo or take an in-draw key, and the keep-awake and recording values must be valid.
+window ran before the page replaced it: every hotkey must parse (a preset's may be empty),
+no two hotkeys may share a combo or take an in-draw key, and the keep-awake and recording
+values must be valid.
 A failed check names the problem and changes nothing.
 """
 
@@ -10,7 +11,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from overmark.config import MAX_TRANSPARENCY_PERCENT, Settings, settings_from_dict
+from overmark.config import (
+    MAX_TRANSPARENCY_PERCENT,
+    PRESET_HOTKEY_KEYS,
+    Settings,
+    settings_from_dict,
+)
 from overmark.keepawake import (
     MAX_DISTANCE_PX,
     MAX_INTERVAL_S,
@@ -36,6 +42,8 @@ HOTKEYS = (
     ("Start/stop recording", "record_toggle"),
     ("Pause recording", "record_pause"),
 )
+# The same, for the hotkeys that may be left empty.
+PRESET_HOTKEYS = tuple((f"Preset {n}", key) for n, key in enumerate(PRESET_HOTKEY_KEYS, 1))
 
 # The page's pickers: value and label pairs, so the page holds no list of its own.
 CHOICES: dict[str, Any] = {
@@ -89,8 +97,11 @@ def checked_update(current: Settings, raw: Any) -> Settings:
         raise SettingsError("The save is not a settings object")
     hotkeys = _block(raw, "hotkey")
     combos = {}
-    for label, key in HOTKEYS:
-        combo = hotkeys.get(key)
+    for label, key in (*HOTKEYS, *PRESET_HOTKEYS):
+        optional = key in PRESET_HOTKEY_KEYS
+        combo = hotkeys.get(key, "" if optional else None)
+        if optional and combo == "":
+            continue
         if not isinstance(combo, str) or not combo.strip():
             raise SettingsError(f"{label} hotkey: press a key combination")
         _check(f"{label} hotkey", parse_hotkey, combo)

@@ -100,29 +100,47 @@ function deviceOptions(list, current, emptyLabel) {
   return names.map((name) => [name, name]);
 }
 
+// A preset's row that opens a sheet: number and name, a value, a chevron.
+function presetRow(preset, index, track, ...content) {
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'settings-row';
+  row.setAttribute('aria-haspopup', 'dialog');
+  row.dataset.track = track;
+  const label = document.createElement('span');
+  label.className = 'settings-row-label';
+  label.textContent = (index + 1) + '  ' + preset.name;
+  const value = document.createElement('span');
+  value.className = 'settings-row-value';
+  value.append(...content);
+  const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  chevron.setAttribute('class', 'icon settings-row-chevron');
+  chevron.setAttribute('aria-hidden', 'true');
+  chevron.innerHTML = '<use href="#i-chevron-right"></use>';
+  row.append(label, value, chevron);
+  return row;
+}
+
 function renderPresets() {
-  const list = $('presetList');
-  list.replaceChildren(...settings.presets.map((preset, index) => {
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'settings-row';
-    row.setAttribute('aria-haspopup', 'dialog');
-    row.dataset.track = 'settings.preset';
-    const label = document.createElement('span');
-    label.className = 'settings-row-label';
-    label.textContent = (index + 1) + '  ' + preset.name;
-    const value = document.createElement('span');
-    value.className = 'settings-row-value';
+  $('presetList').replaceChildren(...settings.presets.map((preset, index) => {
     const swatch = document.createElement('span');
     swatch.className = 'preset-swatch';
     swatch.style.background = preset.color;
-    value.append(swatch, preset.thickness_px + ' px');
-    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    chevron.setAttribute('class', 'icon settings-row-chevron');
-    chevron.setAttribute('aria-hidden', 'true');
-    chevron.innerHTML = '<use href="#i-chevron-right"></use>';
-    row.append(label, value, chevron);
+    const row = presetRow(preset, index, 'settings.preset', swatch, preset.thickness_px + ' px');
     row.addEventListener('click', () => openPreset(index));
+    return row;
+  }));
+}
+
+function renderPresetHotkeys() {
+  $('presetHotkeyList').replaceChildren(...settings.presets.map((preset, index) => {
+    const key = 'preset_' + (index + 1);
+    const combo = comboText(settings.hotkey[key]) || 'None';
+    const row = presetRow(preset, index, 'settings.hotkey-preset', combo);
+    row.dataset.hotkey = key;
+    row.dataset.title = 'Preset ' + (index + 1) + ' hotkey';
+    row.dataset.optional = 'true';
+    row.addEventListener('click', () => openHotkey(row));
     return row;
   }));
 }
@@ -133,7 +151,8 @@ function render() {
   document.querySelectorAll('input[data-path]').forEach((input) => {
     if (document.activeElement !== input) input.value = getPath(settings, input.dataset.path);
   });
-  document.querySelectorAll('[data-hotkey] .settings-row-value').forEach((el) => {
+  // The fixed rows only: renderPresetHotkeys fills its own.
+  document.querySelectorAll('[data-hotkey]:not([data-optional]) .settings-row-value').forEach((el) => {
     el.textContent = comboText(settings.hotkey[el.parentElement.dataset.hotkey]);
   });
   document.querySelectorAll('[data-text]').forEach((row) => {
@@ -165,6 +184,7 @@ function render() {
   $('awakeIntervalRow').hidden = !nudge;
   $('awakeDistanceRow').hidden = !nudge;
   renderPresets();
+  renderPresetHotkeys();
 }
 
 // ----- inline controls -------------------------------------------------------------------
@@ -264,6 +284,7 @@ function openHotkey(row) {
   $('hotkeySheetTitle').textContent = row.dataset.title;
   pendingCombo = settings.hotkey[row.dataset.hotkey];
   $('hotkeyCapture').value = comboText(pendingCombo);
+  $('hotkeyClear').hidden = row.dataset.optional !== 'true';
   dialog.showModal();
   $('hotkeyCapture').focus();
 }
@@ -292,6 +313,12 @@ function captureKey(event) {
   if (!combo) return;
   pendingCombo = combo;
   $('hotkeyCapture').value = comboText(combo);
+}
+
+function clearHotkey() {
+  pendingCombo = '';
+  $('hotkeyCapture').value = '';
+  $('hotkeyCapture').focus();
 }
 
 async function hotkeyDone() {
@@ -383,6 +410,7 @@ function bindSheets() {
   $('textSheetInput').addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); textDone(); } });
   $('textSheetBrowse').addEventListener('click', browseFolder);
   $('hotkeyCapture').addEventListener('keydown', captureKey);
+  $('hotkeyClear').addEventListener('click', clearHotkey);
   $('hotkeySheetDone').addEventListener('click', hotkeyDone);
   $('presetSheetDone').addEventListener('click', presetDone);
   ['presetTransparent', 'presetOutline'].forEach((id) => {
