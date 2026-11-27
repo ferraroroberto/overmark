@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
+import webbrowser
 from collections.abc import Callable
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -16,18 +18,18 @@ from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 from overmark import config as config_mod
 from overmark import icons, theme, win32
 from overmark._vendored.single_instance import SingleInstance
-from overmark.buildprobe import VersionServer, read_git_sha
+from overmark.buildprobe import read_git_sha, started_at
 from overmark.config import Settings
 from overmark.controller import Controller
 from overmark.keepawake import POLL_MS, KeepAwakeEngine
 from overmark.keymap import parse_hotkey
 from overmark.overlay import OverlayWindow, screen_under_cursor
-from overmark.recording.controls import RecordingControls, list_microphones
-from overmark.recording.loopback import list_loopback_devices
-from overmark.recording.monitors import describe
+from overmark.recording.controls import RecordingControls
 from overmark.recording.segments import State
-from overmark.settings_dialog import SettingsDialog
 from overmark.toolbar import CheatSheet, Toolbar
+from overmark.web.bridge import QtBridge
+from overmark.web.qt_backend import QtBackend
+from overmark.web.server import WebServer, create_app
 
 log = logging.getLogger(__name__)
 
@@ -99,7 +101,7 @@ class OvermarkApp:
         self.overlays: list[OverlayWindow] = []
         self.toolbar = Toolbar(self.controller)
         self.cheat_sheet = CheatSheet(self.controller)
-        self.settings_dialog: SettingsDialog | None = None
+        self.settings_url: str | None = None  # set once the settings server is serving
         self._previous_foreground = 0
         self._hotkeys: dict[int, str] = {}  # id to the combo registered for it
 
@@ -246,19 +248,16 @@ class OvermarkApp:
     # ----- settings -------------------------------------------------------------------
 
     def open_settings(self) -> None:
-        if self.settings_dialog is not None and self.settings_dialog.isVisible():
-            self.settings_dialog.raise_()
-            return
+        """Open the settings page in the browser; drawing stops so the browser takes input."""
         self.controller.set_drawing(False)
-        self.settings_dialog = SettingsDialog(
-            self.controller.settings,
-            self.apply_settings,
-            list_microphones=list_microphones,
-            list_system_audio=list_loopback_devices,
-            screen_labels=describe(win32.display_outputs()),
-        )
-        self.settings_dialog.show()
-        self.settings_dialog.activateWindow()
+        if self.settings_url is None:
+            self.tray.showMessage(
+                "Overmark", "Settings are unavailable: the settings server did not start."
+            )
+            return
+        if not webbrowser.open(self.settings_url):
+            log.warning("⚠️ no browser opened %s", self.settings_url)
+            self.tray.showMessage("Overmark", f"Open {self.settings_url} in a browser.")
 
     def apply_settings(self, new: Settings) -> str | None:
         """Apply and persist; return an error message (and change nothing) on failure."""
@@ -302,8 +301,6 @@ class OvermarkApp:
         self.toolbar.apply_theme()
         self.cheat_sheet.rebuild()
         self._theme_menu()
-        if self.settings_dialog is not None:
-            self.settings_dialog.apply_theme()
 
     # ----- tray ----------------------------------------------------------------------
 
@@ -379,12 +376,17 @@ class OvermarkApp:
         self.qapp.quit()
 
 
-def setup_logging() -> Path:
-    log_dir = Path(
+def data_dir() -> Path:
+    """This user's app-data folder: the log and the restart record, never the checkout."""
+    folder = Path(
         QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)
     )
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "overmark.log"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+def setup_logging() -> Path:
+    log_file = data_dir() / "overmark.log"
     handlers: list[logging.Handler] = [
         RotatingFileHandler(log_file, maxBytes=1_000_000, backupCount=2, encoding="utf-8")
     ]
@@ -421,7 +423,23 @@ def main(argv: list[str] | None = None) -> int:
     settings = config_mod.load(args.config)
     app = OvermarkApp(qapp, settings, args.config)
     app.start()
-    probe = VersionServer(read_git_sha(REPO_ROOT))
-    probe.start()
-    qapp.aboutToQuit.connect(probe.stop)
+    server = start_settings_server(app)
+    qapp.aboutToQuit.connect(server.stop)
     return qapp.exec()
+
+
+def start_settings_server(app: OvermarkApp) -> WebServer:
+    """Serve the settings page, ``/api/version`` and the restart on loopback port 8467."""
+    bridge = QtBridge()  # created here, on the Qt thread, which runs its calls
+    backend = QtBackend(bridge, lambda: app.controller.settings, app.apply_settings)
+    web_app = create_app(
+        backend,
+        git_sha=read_git_sha(REPO_ROOT),
+        built_at=started_at(),
+        pid=os.getpid(),
+        restart_dir=data_dir() / "restart",
+    )
+    server = WebServer(web_app)
+    if server.start():
+        app.settings_url = server.url
+    return server

@@ -36,6 +36,20 @@ installer_declaration = { src = "src/installer_declaration.py", sha = "a40310fe4
 installer_inplace = { src = "src/installer_inplace.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "src/installer_inplace.py" }
 install_standard_ratchet = { src = "scripts/install_standard_ratchet.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "scripts/install_standard_ratchet.py" }
 ps_script = { src = "src/ps_script.py", sha = "2d786d295c9b8d545aaf35703889638096f251ad", dest = "src/ps_script.py" }
+base = { src = "app/webapp/static/_vendored/base", sha = "90ac7687bf9bc756d73a3b0f4e64cd692d88617e", dest = "src/overmark/static/_vendored/base" }
+card = { src = "app/webapp/static/_vendored/card", sha = "8f15c49560adbc076d24a8a63dd671868ffa7a4e", dest = "src/overmark/static/_vendored/card" }
+switch = { src = "app/webapp/static/_vendored/switch", sha = "8f15c49560adbc076d24a8a63dd671868ffa7a4e", dest = "src/overmark/static/_vendored/switch" }
+modal = { src = "app/webapp/static/_vendored/modal", sha = "713b1d1e36989440679ec4e415ff149b14d96c81", dest = "src/overmark/static/_vendored/modal" }
+button = { src = "app/webapp/static/_vendored/button", sha = "7a1a7561331edded3dc91128a42076fb3b0262f8", dest = "src/overmark/static/_vendored/button" }
+icon-button = { src = "app/webapp/static/_vendored/icon-button", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/static/_vendored/icon-button" }
+select-native = { src = "app/webapp/static/_vendored/select-native", sha = "09fe2436b6bf3ee608d43fc8a26165e3e2400840", dest = "src/overmark/static/_vendored/select-native" }
+toast = { src = "app/webapp/static/_vendored/toast", sha = "37e590af68af36779729d4913f28168e8cf5554b", dest = "src/overmark/static/_vendored/toast" }
+page-foot = { src = "app/webapp/static/_vendored/page-foot", sha = "245d85e4aaca6cf2d9cbf89a8e3877ec0ed63e70", dest = "src/overmark/static/_vendored/page-foot" }
+settings-group = { src = "app/webapp/static/_vendored/settings-group", sha = "7577aece617ad366e7df8ef522d511184b445144", dest = "src/overmark/static/_vendored/settings-group" }
+segmented = { src = "app/webapp/static/_vendored/segmented", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/static/_vendored/segmented" }
+text-size = { src = "app/webapp/static/_vendored/text-size", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/static/_vendored/text-size" }
+self_restart = { src = "src/self_restart.py", sha = "245d85e4aaca6cf2d9cbf89a8e3877ec0ed63e70", dest = "src/self_restart.py" }
+request_timing = { src = "src/request_timing.py", sha = "4952ab7d1b1528548ebedaff72e2222fb0c27447", dest = "src/request_timing.py" }
 
 # What setup.bat (src/installer.py) installs and checks. No registries and no autostart: config.json
 # is the one local file, and starting at log on is a manual shortcut (docs/install.md).
@@ -80,6 +94,15 @@ copy    = ["config.json"]
 secrets = []
 shared  = []
 start   = ["tray.bat"]
+
+# Design-lint verdicts for the settings page (src/overmark/static/), which is one view.
+[[design.accepted]]
+check  = "nav-contract"
+reason = "One page and no tabs: a bottom tab bar with a single tab would break the navigation contract, so the page has no nav"
+
+[[design.accepted]]
+check  = "rendered-leg"
+reason = "No e2e suite in this repo (CLAUDE.md): the page's hit targets come from the vendored settings-group, switch and modal components unchanged"
 
 [static_ratchet]
 enabled = true
