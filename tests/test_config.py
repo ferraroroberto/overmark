@@ -78,3 +78,13 @@ def test_malformed_file_is_left_alone(tmp_path: Path) -> None:
     target.write_text("{not json", encoding="utf-8")
     assert config.load(target, ROOT / "config.sample.json") == Settings()
     assert target.read_text(encoding="utf-8") == "{not json"
+
+
+def test_toolbar_positions_round_trip_and_drop_bad_entries(tmp_path: Path) -> None:
+    target = tmp_path / "config.json"
+    s = Settings()
+    s.toolbar_positions = {"0,0,1920x1080": (40, 50)}
+    config.save(s, target)
+    assert config.load(target, tmp_path / "no-sample.json") == s
+    bad = {"a": [1], "b": [1, "2"], "c": None, "d": [3, 4]}
+    assert settings_from_dict({"toolbar": {"positions": bad}}).toolbar_positions == {"d": (3, 4)}
