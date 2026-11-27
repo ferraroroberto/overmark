@@ -1,14 +1,10 @@
-# Install, update and move Overmark
+# Install, update and migrate Overmark
 
-Overmark moves to another Windows PC the way any app in the toolbox does: clone it and run one `setup.bat`. An update is a pull plus a restart. Neither resets or overwrites what a PC has configured.
+Overmark installs, updates and migrates the way any app in the toolbox does: clone it and run one `setup.bat`. An update is a pull plus a restart. A migration, onto a fresh clone on the same PC, is one `setup.bat` call. None of them ever resets or overwrites what a PC has configured.
 
-## What you need
+## Install
 
-- Windows 10 or 11, Git, and Python 3.12 or newer (the `py` launcher, or `python` on `PATH`).
-- Only for recording: [ffmpeg](https://ffmpeg.org/download.html) on `PATH`, or its location in `recording.ffmpeg_path`.
-- Only for `tray.bat --restart`: the shared tray helper that `fleet-config`'s `install.ps1` puts in your user profile. Starting and quitting work without it.
-
-## Fresh PC
+You need Windows 10 or 11, `git`, and Python 3.12 or newer (the `py` launcher, or `python` on `PATH`). Only for recording: [ffmpeg](https://ffmpeg.org/download.html) on `PATH`, or its location in `recording.ffmpeg_path`. Only for `tray.bat --restart`: the shared tray helper that `fleet-config`'s `install.ps1` puts in your user profile; starting and quitting work without it.
 
 ```powershell
 git clone <repository URL> overmark
@@ -22,10 +18,11 @@ cd overmark
 1. creates `.venv` when it is missing;
 2. installs `requirements.txt`, and later reinstalls only when that file changed (its hash is kept inside `.venv`);
 3. creates `config.json` from `config.sample.json` when it is missing;
-4. ends with two lists: the required items, each `ok`, `missing` or `unknown`, and the optional features, each `available`, `off` or `unknown` with what it unlocks. Setup has succeeded when it ends with `Setup complete` and exits 0; an optional feature that is `off` never changes that.
+4. ends with two lists: the required items, each `ok`, `missing` or `unknown`, and the optional features, each `available`, `off` or `unknown` with what it unlocks.
 
-On a fresh PC these optional features may read `off`:
+Setup has succeeded when it ends with `Setup complete` and exits 0; an optional feature that is `off` never changes that. The optional features:
 
+- **git**, for updates and the restart's build check.
 - **ffmpeg**, for recording (`off` until ffmpeg is installed; everything but recording works without it).
 - **Restart helper** (`off` without `fleet-config`; then restart by quitting from the tray menu and running `.\tray.bat`).
 
@@ -33,50 +30,61 @@ On a fresh PC these optional features may read `off`:
 
 **Start at log on** is not registered by `setup.bat` (`-Startup` only reports that). Put a shortcut to `tray.bat` in the Startup folder (`Win+R`, `shell:startup`), or register the folder in the app launcher.
 
-## Update
-
-```powershell
-git pull --ff-only
-.\tray.bat --restart
-```
-
-Nothing else is needed. Overmark rewrites no tracked file while it runs (`config.json` and its temporary and backup files are gitignored; the log and recordings are written outside the folder by default), so the pull fast-forwards on a checkout you have not edited.
-
-Without the restart helper, quit Overmark from its tray menu and run `.\tray.bat` instead.
-
-Run `.\setup.bat` between the two commands in one case, and whenever you like otherwise:
-
-- **The pull changed `requirements.txt`:** `setup.bat` installs the new requirements.
-- **A new setting arrived and you want to see it in `config.json`:** the app already uses its default; `setup.bat` writes the key into the file. An existing value is never changed. Before adding a key it copies the file to `config.json.bak-<YYYYmmdd-HHMMSS>`, and it prints the names of the keys it added, never values. A `config.json` that does not parse is left alone and reported, and the run exits 1. A second run reports `unchanged` and writes nothing.
-
-## Migrate from an existing install
-
-Use this on a PC that already runs an older copy of Overmark: one that may not be a git clone, and may live at another path. The old folder stays as it is until the new copy is verified, and it is deleted only when you say so.
-
-1. **Clone fresh beside it.** `git clone <repository URL> <new folder>`, next to the old folder; never clone over the old one.
-2. **Copy this PC's own file across.** From the old folder into the new one, at the same relative path:
-   - `config.json` (the root of the folder): hotkeys, presets, sizes, key map, keep-awake and recording settings.
-
-   That is the whole list. Overmark keeps no database, certificate or secret, and reads no `.env`. Do not copy `.venv`, `__pycache__`, `config.json.tmp` or anything tracked by git.
-3. **Check two settings in that file.** `recording.folder` and `recording.ffmpeg_path` are usually empty. A value that is a relative path, or points inside the old folder, resolves to the wrong place from the new one: move the recordings or ffmpeg out of the old folder and set the new location.
-4. **Top it up.** In the new folder run `.\setup.bat -WhatIf`, read what it would change, then `.\setup.bat`. `config.json` gains only the keys it lacks.
-5. **Stop the old copy.** Quit it from its tray menu. Only one Overmark runs at a time, so the new one exits at once while the old one is still up. Then remove or repoint whatever starts the old copy: the shortcut in `shell:startup`, or its entry in the app launcher.
-6. **Start the new one.** `.\tray.bat`, and set up start at log on as under "Fresh PC" if you want it.
-7. **Verify it.**
-   - The running build is the new clone: the `git_sha` from `Invoke-RestMethod http://127.0.0.1:8467/api/version` equals `git rev-parse HEAD` in the new folder. It can take a few seconds to answer after the start.
-   - `Ctrl+Alt+D` (or your own hotkey) draws, Settings shows your values, and, if you record, a short recording lands where you expect.
-
-   If anything is wrong, quit the new copy from its tray menu and start the old one again: it is untouched.
-8. **Retire the old folder, only after you confirm.** Nothing here or in `setup.bat` deletes the old copy. Rename it first (for example `<old folder>.retired`), run on the new copy for a while, and delete it yourself once you are sure. An agent working through this playbook asks you before it deletes anything.
-
-These live outside the app folder, so a migration on the same PC leaves them where they are:
-
-- the log, `%LOCALAPPDATA%\Overmark\Overmark\overmark.log`;
-- recordings, by default in the `Overmark` folder under your Videos folder, including the segments of an interrupted recording.
-
-## Uninstall
+### Uninstall
 
 1. Quit Overmark from its tray menu.
 2. Remove what you added to start it: the shortcut in `shell:startup`, or the app launcher entry. Overmark registers no autostart, scheduled task or service of its own.
 3. Delete the folder. Keep a copy of `config.json` first if you may want your settings back.
 4. Optional: delete `%LOCALAPPDATA%\Overmark` (the log). Your recordings are yours; delete them only if you mean to.
+
+## Update
+
+```powershell
+git pull --ff-only
+.\setup.bat
+.\tray.bat --restart
+```
+
+Without the restart helper, quit Overmark from its tray menu and run `.\tray.bat` instead of the last line.
+
+Overmark rewrites no tracked file while it runs (`config.json` and its temporary and backup files are gitignored; the log and recordings are written outside the folder by default), so the pull fast-forwards on a checkout you have not edited.
+
+`setup.bat` on a configured PC is safe, and it is how a changed `requirements.txt` is installed and a new setting reaches `config.json`:
+
+- An existing value is never changed. A key the sample has and the file lacks is added, after a timestamped backup beside it (`config.json.bak-<YYYYmmdd-HHMMSS>`), and the added key names are printed, never values. The app already uses that key's default, so adding it changes nothing you see.
+- A `config.json` that does not parse is left alone and reported, and the run exits 1.
+- A second run reports `unchanged` and writes nothing.
+
+## Migrate
+
+What moves is declared in `[install.migrate]` of `.fleet.toml`, and it is one file: `config.json` (hotkeys, presets, sizes, key map, keep-awake, recording and toolbar settings). Overmark keeps no database, certificate or secret, reads no `.env` and shares no runtime-data folder. The installer does the whole move; nothing here or in `setup.bat` deletes the old copy.
+
+**Reinstall in the same folder (the usual case).** The folder must be a git clone. From a terminal whose current folder is outside the app:
+
+```powershell
+cd <parent folder>
+.\overmark\setup.bat -InPlace -WhatIf    # read the backup name and every step; nothing changes
+.\overmark\setup.bat -InPlace
+```
+
+It stops Overmark, keeps the replaced copy as `<folder>.bak-YYYYMMDD-N`, clones the folder's `origin` into the same path, copies `config.json`, installs, starts the tray and passes only when the build probe on port 8467 serves the new clone's commit from a process in that clone. The path is unchanged, so a Startup shortcut or an app launcher entry needs no edit.
+
+**Beside it (another folder, or an old copy that is not a git clone):**
+
+```powershell
+git clone <repository URL> <new folder>
+cd <new folder>
+.\setup.bat -MigrateFrom <old folder> -StopOld
+```
+
+`-StopOld` is needed on the same PC: only one Overmark runs at a time. Add `-WhatIf` to either command to see every step without any change.
+
+Only you can do these steps:
+
+- **Check two settings** in `config.json`: `recording.folder` and `recording.ffmpeg_path` are usually empty. The installer rewrites a value that starts with the old folder, but a relative path now resolves from the new one, and recordings or an ffmpeg you kept inside the old folder stay behind: move them out and set the new location.
+- **Repoint** whatever stores the old path, after a `-MigrateFrom` into another folder (the shortcut in `shell:startup`, the app launcher entry): the run lists what still points at it.
+- **Verify by eye:** `Ctrl+Alt+D` (or your own hotkey) draws, Settings shows your values, and, if you record, a short recording lands where you expect.
+- **Fall back** if verify fails (the report names the step): quit the new copy from its tray menu, rename the new folder away and the backup to the original name (after `-MigrateFrom`, the old folder is where it was), and run its `tray.bat`; it is untouched.
+- **Retire the old copy** once you are sure the new one works, by deleting it yourself. An agent working through this playbook asks you before it deletes anything.
+
+The log (`%LOCALAPPDATA%\Overmark\Overmark\overmark.log`) and your recordings (by default the `Overmark` folder under your Videos folder) live outside the app folder, so a migration on the same PC leaves them where they are.

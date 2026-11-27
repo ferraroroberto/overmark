@@ -6,7 +6,8 @@ src = ["src", "tests"]
 extend-exclude = ["scripts/*_ratchet.py", "scripts/conventions_*.py", "scripts/instruction_*.py",
   "scripts/request_budget_scan.py", "scripts/runtime_write_resolve.py", "scripts/structure_*.py",
   "scripts/run_ratchets.py", "tests/host/_synthetic_host.py", "src/build_info.py",
-  "src/installer.py", "src/ps_script.py", "src/restart_check.py"]
+  "src/installer*.py", "src/ps_script.py", "src/restart_check.py",
+  "scripts/install_standard_ratchet.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]

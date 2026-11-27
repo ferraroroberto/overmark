@@ -80,7 +80,7 @@ H.264 uses the first hardware encoder that passes a one-frame test (NVIDIA, Inte
 
 ## Install
 
-Clone and run `setup.bat`. Fresh PC, update, migration from an older copy and uninstall: [docs/install.md](docs/install.md).
+Clone and run `setup.bat`. `setup.bat -InPlace` reinstalls a clone at the same path and `setup.bat -MigrateFrom <old folder>` moves an older copy into a fresh one. Fresh PC, update, migration and uninstall: [docs/install.md](docs/install.md).
 
 ## Run
 
@@ -101,7 +101,7 @@ py -3 -m venv .venv
 powershell -File scripts/verify-before-ship.ps1
 ```
 
-The gate prints `GATE-RESULT: PASS` or `GATE-RESULT: FAIL (<stage>)`. After byte-compile and ruff it runs `scripts/run_ratchets.py`: ten baseline-and-ratchet checks (static, comment, docs, structure, instruction, doc refs, dead code, conventions, runtime write, request budget), then the tests and the runtime write probe. Each ratchet records today's debt in a committed `.<name>-ratchet-baseline.json` and fails only when a count rises; the scripts are copied unedited from project-scaffolding (`.fleet.toml` `[vendored]`). Tests read the machine's identity only through the `synthetic_host` fixture.
+The gate prints `GATE-RESULT: PASS` or `GATE-RESULT: FAIL (<stage>)`. After byte-compile and ruff it runs `scripts/run_ratchets.py`: eleven baseline-and-ratchet checks (static, comment, docs, structure, instruction, doc refs, dead code, conventions, runtime write, request budget, install standard), then the tests and the runtime write probe. Each ratchet records today's debt in a committed `.ratchets/<name>.json` and fails only on new debt; the scripts are copied unedited from project-scaffolding (`.fleet.toml` `[vendored]`). Tests read the machine's identity only through the `synthetic_host` fixture.
 
 ## Notes
 
