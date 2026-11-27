@@ -8,6 +8,7 @@ import os
 import sys
 import webbrowser
 from collections.abc import Callable
+from functools import partial
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from overmark import config as config_mod
 from overmark import icons, theme, win32
 from overmark._vendored.single_instance import SingleInstance
 from overmark.buildprobe import read_git_sha, started_at
-from overmark.config import Settings
+from overmark.config import PRESET_COUNT, Settings
 from overmark.controller import Controller
 from overmark.keepawake import POLL_MS, KeepAwakeEngine
 from overmark.keymap import parse_hotkey
@@ -42,10 +43,12 @@ INSTANCE_MUTEX = "Global\\overmark-tray"
 DRAW_HOTKEY_ID = 0x4F4D
 RECORD_HOTKEY_ID = 0x4F4E
 PAUSE_HOTKEY_ID = 0x4F4F
+PRESET_HOTKEY_IDS = tuple(range(0x4F50, 0x4F50 + PRESET_COUNT))
 HOTKEY_LABELS = {
     DRAW_HOTKEY_ID: "Draw",
     RECORD_HOTKEY_ID: "Start/stop recording",
     PAUSE_HOTKEY_ID: "Pause recording",
+    **{hotkey_id: f"Preset {n}" for n, hotkey_id in enumerate(PRESET_HOTKEY_IDS, 1)},
 }
 TRAY_SIZES = (16, 20, 24, 32, 40, 48, 64)  # Windows picks per DPI; small sizes stay crisp
 
@@ -114,6 +117,10 @@ class OvermarkApp:
                 DRAW_HOTKEY_ID: self.controller.toggle_draw,
                 RECORD_HOTKEY_ID: self.recording.toggle,
                 PAUSE_HOTKEY_ID: self.recording.toggle_pause,
+                **{
+                    hotkey_id: partial(self.controller.draw_with_preset, index)
+                    for index, hotkey_id in enumerate(PRESET_HOTKEY_IDS)
+                },
             }
         )
         qapp.installNativeEventFilter(self.hotkey_filter)
@@ -150,13 +157,7 @@ class OvermarkApp:
         self.rebuild_overlays()
         self.toolbar.show()
         self.tray.show()
-        for hotkey_id, combo in self.wanted_hotkeys(self.controller.settings).items():
-            if not self.register_hotkey(hotkey_id, combo):
-                self.tray.showMessage(
-                    "Overmark",
-                    f"The {HOTKEY_LABELS[hotkey_id].lower()} hotkey {combo.upper()} is taken; "
-                    "pick another in Settings.",
-                )
+        self.register_startup_hotkeys()
         log.info("✅ Overmark running on %d screen(s)", len(self.overlays))
         return True
 
@@ -221,11 +222,27 @@ class OvermarkApp:
 
     @staticmethod
     def wanted_hotkeys(settings: Settings) -> dict[int, str]:
+        """Id to combo for every hotkey the settings define; an unset preset has none."""
+        presets = zip(PRESET_HOTKEY_IDS, settings.preset_hotkeys, strict=True)
         return {
             DRAW_HOTKEY_ID: settings.toggle_hotkey,
             RECORD_HOTKEY_ID: settings.record_hotkey,
             PAUSE_HOTKEY_ID: settings.pause_hotkey,
+            **{hotkey_id: combo for hotkey_id, combo in presets if combo},
         }
+
+    def register_startup_hotkeys(self) -> None:
+        """Register every hotkey; one notice names all the refused ones, so none hides another."""
+        refused = [
+            f"{HOTKEY_LABELS[hotkey_id]} ({combo.upper()})"
+            for hotkey_id, combo in self.wanted_hotkeys(self.controller.settings).items()
+            if not self.register_hotkey(hotkey_id, combo)
+        ]
+        if refused:
+            self.tray.showMessage(
+                "Overmark",
+                f"Hotkey not registered: {', '.join(refused)}. Pick another in Settings.",
+            )
 
     def register_hotkey(self, hotkey_id: int, combo: str) -> bool:
         label = HOTKEY_LABELS[hotkey_id]
@@ -236,6 +253,7 @@ class OvermarkApp:
             return False
         self.unregister_hotkey(hotkey_id)
         if not win32.register_hotkey(hotkey_id, modifiers, vk):
+            log.warning("⚠️ %s hotkey %s not registered: Windows refused it", label, combo)
             return False
         self._hotkeys[hotkey_id] = combo
         log.info("✅ %s hotkey %s registered", label, combo)
@@ -262,22 +280,24 @@ class OvermarkApp:
     def apply_settings(self, new: Settings) -> str | None:
         """Apply and persist; return an error message (and change nothing) on failure."""
         old = self.controller.settings
-        changed = {
-            hotkey_id: combo
-            for hotkey_id, combo in self.wanted_hotkeys(new).items()
-            if self._hotkeys.get(hotkey_id) != combo
-        }
+        before, after = self.wanted_hotkeys(old), self.wanted_hotkeys(new)
+        # Not registered as the save wants it: edited, cleared, or refused earlier.
+        changed = [i for i in HOTKEY_LABELS if self._hotkeys.get(i) != after.get(i)]
         # Release every changed combo first, so two of our hotkeys can swap keys.
         for hotkey_id in changed:
             self.unregister_hotkey(hotkey_id)
-        for hotkey_id, combo in changed.items():
-            if not self.register_hotkey(hotkey_id, combo):
-                for undo_id in changed:
-                    self.unregister_hotkey(undo_id)
-                for undo_id, old_combo in self.wanted_hotkeys(old).items():
-                    if undo_id in changed:
-                        self.register_hotkey(undo_id, old_combo)
-                return f"{combo.upper()} is already used by another application."
+        for hotkey_id in changed:
+            combo = after.get(hotkey_id)
+            if combo is None or self.register_hotkey(hotkey_id, combo):
+                continue
+            if combo == before.get(hotkey_id):
+                continue  # refused before this save too: it must not block an unrelated one
+            for undo_id in changed:
+                self.unregister_hotkey(undo_id)
+            for undo_id in changed:
+                if undo_id in before:
+                    self.register_hotkey(undo_id, before[undo_id])
+            return f"{combo.upper()} is already used by another application."
         screens_changed = new.cover_all_screens != old.cover_all_screens
         self.controller.apply_settings(new)
         if screens_changed:

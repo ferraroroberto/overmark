@@ -54,6 +54,31 @@ def test_an_invalid_save_is_refused_with_its_reason(changes: dict, message: str)
         checked_update(Settings(), saved(**changes))
 
 
+def test_preset_hotkeys_are_optional_and_saved_normalised() -> None:
+    assert checked_update(Settings(), saved()).preset_hotkeys == [""] * 7
+    updated = checked_update(Settings(), saved(hotkey__preset_2="Alt+Ctrl+2"))
+    assert updated.preset_hotkeys == ["", "ctrl+alt+2", "", "", "", "", ""]
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"hotkey__preset_1": "5"}, "Preset 1 hotkey: a global hotkey needs ctrl, alt or win"),
+        ({"hotkey__preset_4": None}, "Preset 4 hotkey: press a key combination"),
+        ({"hotkey__preset_1": "ctrl+alt+d"}, "Hotkeys clash: Draw and Preset 1 both use"),
+        ({"hotkey__preset_3": "ctrl+alt+f9"}, "Hotkeys clash: Start/stop recording and Preset 3"),
+        (
+            {"hotkey__preset_5": "ctrl+alt+k", "hotkey__preset_6": "alt+ctrl+k"},
+            "Hotkeys clash: Preset 5 and Preset 6 both use",
+        ),
+        ({"hotkey__preset_2": "ctrl+z"}, "Hotkeys clash: Preset 2 uses CTRL\\+Z, the in-draw key"),
+    ],
+)
+def test_a_clashing_preset_hotkey_is_refused(changes: dict, message: str) -> None:
+    with pytest.raises(SettingsError, match="^" + message):
+        checked_update(Settings(), saved(**changes))
+
+
 def test_a_hotkey_on_an_in_draw_key_is_refused() -> None:
     current = Settings()
     current.keys["pen"] = "ctrl+alt+p"

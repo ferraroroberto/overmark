@@ -371,6 +371,11 @@ class CheatSheet(CaptureHidden):
             (settings.pause_hotkey.upper(), "Pause / resume recording (anywhere)"),
         ]
         rows += [
+            (combo.upper(), f"Draw with preset {n} (anywhere)")
+            for n, combo in enumerate(settings.preset_hotkeys, 1)
+            if combo
+        ]
+        rows += [
             (combo.upper(), ACTION_LABELS[a])
             for a, combo in self.controller.keymap.bindings.items()
         ]

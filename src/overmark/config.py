@@ -28,6 +28,8 @@ CONFIG_PATH = REPO_ROOT / "config.json"
 SAMPLE_PATH = REPO_ROOT / "config.sample.json"
 
 PRESET_COUNT = 7
+# The keys under ``hotkey`` for the presets' global hotkeys, in preset order.
+PRESET_HOTKEY_KEYS = tuple(f"preset_{n}" for n in range(1, PRESET_COUNT + 1))
 DEFAULT_HOTKEY = "ctrl+alt+d"
 DEFAULT_RECORD_HOTKEY = "ctrl+alt+f9"
 DEFAULT_PAUSE_HOTKEY = "ctrl+alt+f10"
@@ -91,6 +93,8 @@ class Settings:
     toggle_hotkey: str = DEFAULT_HOTKEY
     record_hotkey: str = DEFAULT_RECORD_HOTKEY
     pause_hotkey: str = DEFAULT_PAUSE_HOTKEY
+    # One global hotkey per preset, in preset order; empty means none.
+    preset_hotkeys: list[str] = field(default_factory=lambda: [""] * PRESET_COUNT)
     cover_all_screens: bool = True
     fade: Fade = field(default_factory=Fade)
     presets: list[Preset] = field(default_factory=default_presets)
@@ -223,12 +227,16 @@ def _toolbar_positions_from(raw: Any) -> dict[str, tuple[int, int]]:
 
 
 def _hotkey(raw: dict[str, Any], key: str, default: str) -> str:
+    """The combo under ``key``; an empty ``default`` marks a hotkey that may stay unset."""
     combo = raw.get(key, default)
+    if not default and combo in ("", None):
+        return ""
     try:
         parse_hotkey(str(combo))
         return normalize_combo(str(combo))
     except ValueError as exc:
-        log.warning("⚠️ config: hotkey.%s=%r invalid (%s); using %s", key, combo, exc, default)
+        fallback = default or "no hotkey"
+        log.warning("⚠️ config: hotkey.%s=%r invalid (%s); using %s", key, combo, exc, fallback)
         return default
 
 
@@ -257,6 +265,7 @@ def settings_from_dict(raw: dict[str, Any]) -> Settings:
         toggle_hotkey=_hotkey(hotkeys, "toggle_draw", DEFAULT_HOTKEY),
         record_hotkey=_hotkey(hotkeys, "record_toggle", DEFAULT_RECORD_HOTKEY),
         pause_hotkey=_hotkey(hotkeys, "record_pause", DEFAULT_PAUSE_HOTKEY),
+        preset_hotkeys=[_hotkey(hotkeys, key, "") for key in PRESET_HOTKEY_KEYS],
         cover_all_screens=_flag(screens_raw.get("cover_all"), base.cover_all_screens),
         fade=Fade(
             enabled=_flag(fade_raw.get("enabled"), base.fade.enabled),
@@ -285,6 +294,7 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
             "toggle_draw": settings.toggle_hotkey,
             "record_toggle": settings.record_hotkey,
             "record_pause": settings.pause_hotkey,
+            **dict(zip(PRESET_HOTKEY_KEYS, settings.preset_hotkeys, strict=True)),
         },
         "screens": {"cover_all": settings.cover_all_screens},
         "fade": {

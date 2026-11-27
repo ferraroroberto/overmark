@@ -113,6 +113,10 @@
       </button>
     </section>
 
+    <h2 class="settings-group-label" id="groupPresetHotkeys">Preset hotkeys</h2>
+    <section class="card settings-group" id="presetHotkeyList" aria-labelledby="groupPresetHotkeys"></section>
+    <p class="settings-footnote">A preset hotkey works in any application: it picks the preset and starts drawing. None is set until you set one.</p>
+
     <h2 class="settings-group-label" id="groupRecording">Recording</h2>
     <section class="card settings-group" aria-labelledby="groupRecording">
       <label class="settings-row">
@@ -318,8 +322,11 @@
       </button>
     </div>
     <div class="settings-sheet-body">
-      <input class="input-native hotkey-capture" id="hotkeyCapture" type="text" readonly autofocus aria-describedby="hotkeyHint" aria-labelledby="hotkeySheetTitle">
+      <input class="input-native hotkey-capture" id="hotkeyCapture" type="text" placeholder="None" readonly autofocus aria-describedby="hotkeyHint" aria-labelledby="hotkeySheetTitle">
       <p class="sheet-hint" id="hotkeyHint">Press the new combination: Ctrl, Alt or Win with a letter, a digit, F1 to F24, Space, Pause, Insert, Home or End.</p>
+      <button type="button" class="button-surface" id="hotkeyClear" data-track="settings.hotkey-clear" hidden>
+        <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg> Clear
+      </button>
     </div>
     <div class="detail-actions">
       <button type="button" class="button-primary detail-save-btn" id="hotkeySheetDone" data-track="settings.hotkey-done">Done</button>
