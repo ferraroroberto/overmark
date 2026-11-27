@@ -6,7 +6,9 @@ import subprocess
 from pathlib import Path
 
 from scripts import install_check
-from src import installer
+from src import installer, installer_migrate
+
+from overmark.buildprobe import VERSION_PATH, VERSION_PORT
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -61,6 +63,17 @@ def test_what_if_writes_nothing(tmp_path: Path) -> None:
 
     assert ("would add", "config.json") in [line[:2] for line in report.lines]
     assert _files(root) == before
+
+
+def test_migration_verifies_the_build_probe_and_copies_every_config() -> None:
+    card = installer_migrate.read_fleet_toml(ROOT)
+
+    migration = installer_migrate.parse_migration(card)
+
+    assert migration.endpoint is not None
+    assert migration.endpoint.port == VERSION_PORT
+    assert migration.endpoint.version_path == VERSION_PATH
+    assert migration.copy == [pair["target"] for pair in card["install"]["config"]]
 
 
 def test_ffmpeg_check_reads_the_config_without_creating_it(tmp_path: Path, monkeypatch) -> None:

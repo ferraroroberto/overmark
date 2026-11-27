@@ -23,14 +23,18 @@ runtime_write_ratchet = { src = "scripts/runtime_write_ratchet.py", sha = "48db2
 runtime_write_resolve = { src = "scripts/runtime_write_resolve.py", sha = "4952ab7d1b1528548ebedaff72e2222fb0c27447", dest = "scripts/runtime_write_resolve.py" }
 request_budget_ratchet = { src = "scripts/request_budget_ratchet.py", sha = "48db2132dab2dfc38b6154948ca17fd1f4b9232f", dest = "scripts/request_budget_ratchet.py" }
 request_budget_scan = { src = "scripts/request_budget_scan.py", sha = "5ba99b0a04b1b5d7b3689f8f7a59bd3fe625a9bc", dest = "scripts/request_budget_scan.py" }
-run_ratchets = { src = "scripts/run_ratchets.py", sha = "4952ab7d1b1528548ebedaff72e2222fb0c27447", dest = "scripts/run_ratchets.py" }
+run_ratchets = { src = "scripts/run_ratchets.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "scripts/run_ratchets.py" }
 synthetic_host = { src = "tests/host/_synthetic_host.py", sha = "160b54e2e0bcf76541d0a5f9bb4d6265dd493c31", dest = "tests/host/_synthetic_host.py" }
 icons = { src = "app/webapp/static/_vendored/icons", sha = "4d75f1ebfae5c9d8462c55a90edd56f8b09157d4", dest = "src/overmark/_vendored/icons" }
 single_instance = { src = "app/tray/single_instance.py", sha = "160b54e2e0bcf76541d0a5f9bb4d6265dd493c31", dest = "src/overmark/_vendored/single_instance.py" }
 build_info = { src = "src/build_info.py", sha = "db08b78dabcd817616ca4fc2954035466d2435d7", dest = "src/build_info.py" }
 restart_check = { src = "src/restart_check.py", sha = "f8c2f66eae7a69f3c834386579702ed5b747d7af", dest = "src/restart_check.py" }
 ratchet_baseline = { src = "scripts/ratchet_baseline.py", sha = "48db2132dab2dfc38b6154948ca17fd1f4b9232f", dest = "scripts/ratchet_baseline.py" }
-installer = { src = "src/installer.py", sha = "f774234582bc8fe2ce2e44804275b690b192f40d", dest = "src/installer.py" }
+installer = { src = "src/installer.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "src/installer.py" }
+installer_migrate = { src = "src/installer_migrate.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "src/installer_migrate.py" }
+installer_declaration = { src = "src/installer_declaration.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "src/installer_declaration.py" }
+installer_inplace = { src = "src/installer_inplace.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "src/installer_inplace.py" }
+install_standard_ratchet = { src = "scripts/install_standard_ratchet.py", sha = "a40310fe47f82ed7af62835fbfb3ea7ba9e04f8d", dest = "scripts/install_standard_ratchet.py" }
 ps_script = { src = "src/ps_script.py", sha = "2d786d295c9b8d545aaf35703889638096f251ad", dest = "src/ps_script.py" }
 
 # What setup.bat (src/installer.py) installs and checks. No registries and no autostart: config.json
@@ -63,6 +67,20 @@ blocks  = "tray.bat --restart"
 command = ["{python}", "-B", "scripts/install_check.py", "restart-helper"]
 hint    = "it comes from fleet-config's install.ps1; without it, quit from the tray menu and run tray.bat"
 
+# setup.bat -MigrateFrom / -InPlace. The probe's port is the top-level `port`: it is a constant in
+# the code, so there is no port_config to read.
+[install.endpoint]
+scheme       = "http"
+version_path = "/api/version"
+
+# config.json is the whole of this PC's state: no secret, no certificate, no runtime-data folder.
+# A plain start, not --restart: the old copy is already stopped, and --restart needs fleet-config.
+[install.migrate]
+copy    = ["config.json"]
+secrets = []
+shared  = []
+start   = ["tray.bat"]
+
 [static_ratchet]
 enabled = true
 
@@ -92,4 +110,7 @@ rules = ["no-window", "logging-not-print", "no-drive-path", "no-pwsh-stub", "sub
 enabled = true
 
 [request_budget_ratchet]
+enabled = true
+
+[install_standard_ratchet]
 enabled = true
