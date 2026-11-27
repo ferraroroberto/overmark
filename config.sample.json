@@ -155,5 +155,8 @@
     },
     "backend": "auto",
     "ffmpeg_path": ""
+  },
+  "toolbar": {
+    "positions": {}
   }
 }

@@ -132,8 +132,10 @@ class OvermarkApp:
         c.restore_focus_requested.connect(self.restore_focus)
         c.cheat_sheet_requested.connect(self.cheat_sheet.toggle)
         self.toolbar.settings_requested.connect(self.open_settings)
-        qapp.screenAdded.connect(lambda _s: self.rebuild_overlays())
+        qapp.screenAdded.connect(self._on_screen_added)
         qapp.screenRemoved.connect(lambda _s: self.rebuild_overlays())
+        for screen in QGuiApplication.screens():
+            self._follow_screen(screen)
         QGuiApplication.styleHints().colorSchemeChanged.connect(lambda _s: self.apply_theme())
 
         self.tray = QSystemTrayIcon(tray_icon())
@@ -163,6 +165,14 @@ class OvermarkApp:
             return list(QGuiApplication.screens())
         return [QGuiApplication.primaryScreen()]
 
+    def _follow_screen(self, screen: QScreen) -> None:
+        # A resolution or arrangement change can leave the toolbar's spot off screen.
+        screen.geometryChanged.connect(lambda _g: self.toolbar.place())
+
+    def _on_screen_added(self, screen: QScreen) -> None:
+        self._follow_screen(screen)
+        self.rebuild_overlays()
+
     def rebuild_overlays(self) -> None:
         for overlay in self.overlays:
             overlay.close()
@@ -172,6 +182,7 @@ class OvermarkApp:
             overlay.show()
             if self.recording.ink_hidden:
                 win32.set_capture_excluded(overlay.hwnd(), True)
+        self.toolbar.place()
         self.toolbar.raise_above_overlays()
         log.info(
             "ℹ️ overlays on %s",

@@ -13,7 +13,8 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - Tools: pen, highlighter (translucent, drawn under other ink), arrow, text label (click, type, `Enter`; `Shift+Enter` for a new line), laser (hold `L`: a dot with a short fading trail, never stored or undone, system cursor hidden), undo, clear.
 - Seven presets (colour, thickness, transparency on/off and amount, outline on/off and thickness): keys `1` to `7`, or the mouse wheel over the toolbar.
 - Fading is a setting: on or off plus a delay in seconds; strokes then ease out over about 0.6 s. `F` pins the ink on screen so it stops fading.
-- The toolbar (a pill that collapses to a small handle and expands on hover), the cheat-sheet and the settings window are excluded from screen capture.
+- The toolbar (a pill that collapses to a small handle and expands on hover) can be moved: press anywhere on it and drag it to any screen. It stays where you drop it, remembered per screen layout, with the collapsed handle at the middle of where you left the pill; a click without a drag still works the button under the pointer.
+- The toolbar, the cheat-sheet and the settings window are excluded from screen capture.
 - Compression-safe defaults: widths in capture pixels (pen 6, highlighter 28, text 32, laser dot 18 with a 6 px halo), a dark outline on every stroke (a light one on dark ink), and a brightness-first palette with no pure red or blue.
 - Keep-awake, off by default, for presentations and long sessions: a tray item and the toolbar's sun button toggle it, and the tray icon gets a green badge while it is armed. The default method asks Windows to keep the display on, so the pointer never moves; the alternative nudges the pointer 1 px and back after a whole interval of inactivity, and never while a stroke is drawn, a label typed or the laser held.
 - Screen recording through ffmpeg (see [Recording](#recording)): all screens in one video, or one screen, with the toolbar, the recording chip and settings kept out of the video.
@@ -53,6 +54,7 @@ Keys reach the app only while drawing, so they never collide with the applicatio
 | `keys` | the in-draw key for each action |
 | `hotkey.record_toggle`, `hotkey.record_pause` | global recording hotkeys (default `ctrl+alt+f9`, `ctrl+alt+f10`) |
 | `recording` | recording settings; see [Recording](#recording) |
+| `toolbar.positions` | where the toolbar was dragged: one `[x, y]` (its top centre) per screen layout, written by the app. Delete an entry to return to the default top centre; a point that is on no screen is ignored |
 
 Invalid values fall back to the default for that key, with a warning in the log. The log is `overmark.log` in the app's local data folder (`%LOCALAPPDATA%\Overmark\Overmark`), one line per drawing session.
 

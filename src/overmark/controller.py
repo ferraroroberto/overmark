@@ -104,6 +104,16 @@ class Controller(QObject):
         config_mod.save(self.settings, self.config_path)
         self.settings_changed.emit()
 
+    def set_toolbar_position(self, layout: str, anchor: tuple[int, int]) -> None:
+        """Remember where the toolbar was dragged to under this screen layout."""
+        self.settings.toolbar_positions[layout] = anchor
+        try:
+            config_mod.save(self.settings, self.config_path)
+        except OSError as exc:
+            log.warning("⚠️ toolbar position not saved (%s); it lasts until the app closes", exc)
+            return
+        log.info("ℹ️ toolbar moved to %d,%d", *anchor)
+
     # ----- tools and presets ------------------------------------------------------
 
     def set_tool(self, tool: Tool) -> None:
@@ -291,6 +301,8 @@ class Controller(QObject):
     # ----- settings ---------------------------------------------------------------------
 
     def apply_settings(self, settings: Settings) -> None:
+        # Settings edits an earlier copy; a drag made since then must survive its save.
+        settings.toolbar_positions = self.settings.toolbar_positions
         self.settings = settings
         self.keymap = KeyMap(settings.keys)
         self.cycler = PresetCycler(len(settings.presets), self.cycler.index)

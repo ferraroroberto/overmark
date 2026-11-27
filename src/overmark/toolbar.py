@@ -4,9 +4,19 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QPoint, QRectF, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QPainter, QPen, QWheelEvent
+from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QRectF, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import (
+    QColor,
+    QCursor,
+    QGuiApplication,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QWheelEvent,
+)
 from PySide6.QtWidgets import (
+    QAbstractButton,
+    QApplication,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -15,7 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from overmark import icons, theme, win32
+from overmark import icons, placement, theme, win32
 from overmark.controller import Controller
 from overmark.keymap import ACTION_LABELS
 from overmark.strokes import Tool
@@ -31,6 +41,19 @@ _FLAGS = (
     | Qt.WindowType.WindowDoesNotAcceptFocus
     | Qt.WindowType.NoDropShadowWindowHint
 )
+
+
+def _area(rect: QRect) -> placement.Area:
+    return placement.Area(rect.x(), rect.y(), rect.width(), rect.height())
+
+
+def _available_areas() -> list[placement.Area]:
+    return [_area(screen.availableGeometry()) for screen in QGuiApplication.screens()]
+
+
+def _layout_key() -> str:
+    # Full geometry, not the available part: moving the taskbar is not a new layout.
+    return placement.layout_key([_area(s.geometry()) for s in QGuiApplication.screens()])
 
 
 class CaptureHidden(QWidget):
@@ -86,6 +109,9 @@ class Toolbar(CaptureHidden):
         self.controller = controller
         self.expanded = False
         self.setWindowTitle("Overmark toolbar")
+        self.dragging = False
+        self._press: QPoint | None = None  # pointer at a left press that may become a drag
+        self._grab = QPoint()  # that pointer relative to the window
 
         self._collapse_timer = QTimer(self)
         self._collapse_timer.setSingleShot(True)
@@ -151,6 +177,9 @@ class Toolbar(CaptureHidden):
             panel_row.addWidget(self._button(glyph, tip, slot))
         row.addWidget(self.panel)
         self.panel.hide()
+        # The buttons cover nearly all of the pill, so a drag may start on any of them.
+        for button in self.findChildren(QAbstractButton):
+            button.installEventFilter(self)
 
         controller.mode_changed.connect(lambda _on: self.refresh())
         controller.tool_changed.connect(self.refresh)
@@ -194,12 +223,77 @@ class Toolbar(CaptureHidden):
             f"Overmark: {c.settings.toggle_hotkey.upper()} toggles drawing; hover to expand"
             + ("; keep-awake on" if armed else "")
         )
-        self._place()
+        self.place()
 
-    def _place(self) -> None:
+    # ----- position and drag -----------------------------------------------------
+
+    def place(self) -> None:
+        """Size to the content, then sit at this screen layout's saved spot or the default."""
         self.adjustSize()
-        screen = QGuiApplication.primaryScreen().availableGeometry()
-        self.move(QPoint(screen.center().x() - self.width() // 2, screen.top() + TOP_MARGIN))
+        if self.dragging:
+            return  # the pointer owns the position until the drop
+        saved = self.controller.settings.toolbar_positions.get(_layout_key())
+        primary = _area(QGuiApplication.primaryScreen().availableGeometry())
+        anchor, area = placement.resolve_anchor(saved, _available_areas(), primary, TOP_MARGIN)
+        self.move(QPoint(*placement.top_left(anchor, self.width(), self.height(), area)))
+
+    def _drag(self, event: QMouseEvent) -> bool:
+        """Feed one mouse event to the drag; True once the event belongs to a drag.
+
+        A press that stays within the system drag distance is left alone, so it still clicks.
+        """
+        kind = event.type()
+        left = Qt.MouseButton.LeftButton
+        if kind in (QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonDblClick):
+            if event.button() == left:
+                self._press = event.globalPosition().toPoint()
+                self._grab = self._press - self.pos()
+                self.dragging = False
+            return False
+        if self._press is None:
+            return False
+        pointer = event.globalPosition().toPoint()
+        if kind == QEvent.Type.MouseMove and event.buttons() & left:
+            if not self.dragging:
+                if (pointer - self._press).manhattanLength() < QApplication.startDragDistance():
+                    return False
+                self.dragging = True
+                self._collapse_timer.stop()
+            self.move(pointer - self._grab)
+            return True
+        if kind == QEvent.Type.MouseButtonRelease and event.button() == left:
+            self._press = None
+            if self.dragging:
+                self.dragging = False
+                self._drop(pointer)
+                return True
+        return False
+
+    def _drop(self, pointer: QPoint) -> None:
+        """Keep the spot where the pill was let go, on the screen under the pointer."""
+        area = placement.nearest(_available_areas(), (pointer.x(), pointer.y()))
+        dropped = (self.x() + self.width() // 2, self.y())
+        anchor = placement.clamp_anchor(dropped, area, self.height())
+        self.controller.set_toolbar_position(_layout_key(), anchor)
+        self.place()
+        self.raise_above_overlays()
+        if not self.geometry().contains(QCursor.pos()):
+            self._collapse_timer.start()
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 (Qt override)
+        if isinstance(event, QMouseEvent) and self._drag(event):
+            watched.setDown(False)  # a drag is not a click
+            return True
+        return super().eventFilter(watched, event)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802 (Qt override)
+        self._drag(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802 (Qt override)
+        self._drag(event)
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802 (Qt override)
+        self._drag(event)
 
     # ----- collapse / expand -----------------------------------------------------
 
@@ -209,14 +303,14 @@ class Toolbar(CaptureHidden):
             self.expanded = True
             self.handle.hide()
             self.panel.show()
-            self._place()
+            self.place()
 
     def collapse(self) -> None:
-        if self.expanded:
+        if self.expanded and not self.dragging:
             self.expanded = False
             self.panel.hide()
             self.handle.show()
-            self._place()
+            self.place()
 
     def enterEvent(self, event) -> None:  # noqa: N802 (Qt override)
         self.expand()

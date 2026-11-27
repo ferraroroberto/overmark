@@ -98,6 +98,8 @@ class Settings:
     keys: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_KEYS))
     keep_awake: KeepAwake = field(default_factory=KeepAwake)
     recording: RecordingOptions = field(default_factory=RecordingOptions)
+    # Screen-layout key to the toolbar's top-centre point, written when it is dragged.
+    toolbar_positions: dict[str, tuple[int, int]] = field(default_factory=dict)
 
 
 def _is_hex_color(value: Any) -> bool:
@@ -207,6 +209,19 @@ def _keep_awake_from(raw: Any) -> KeepAwake:
     )
 
 
+def _toolbar_positions_from(raw: Any) -> dict[str, tuple[int, int]]:
+    entries = raw.get("positions") if isinstance(raw, dict) else None
+    if not isinstance(entries, dict):
+        return {}
+    positions = {}
+    for layout, point in entries.items():
+        if isinstance(point, list) and len(point) == 2 and all(type(v) is int for v in point):
+            positions[layout] = (point[0], point[1])
+        else:
+            log.warning("⚠️ config: toolbar.positions[%s]=%r is not [x, y]; ignored", layout, point)
+    return positions
+
+
 def _hotkey(raw: dict[str, Any], key: str, default: str) -> str:
     combo = raw.get(key, default)
     try:
@@ -259,6 +274,7 @@ def settings_from_dict(raw: dict[str, Any]) -> Settings:
         keys=_keys_from(raw.get("keys")),
         keep_awake=_keep_awake_from(raw.get("keep_awake")),
         recording=options_from_dict(raw.get("recording")),
+        toolbar_positions=_toolbar_positions_from(raw.get("toolbar")),
     )
 
 
@@ -302,6 +318,7 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
             "distance_px": settings.keep_awake.distance_px,
         },
         "recording": options_to_dict(settings.recording),
+        "toolbar": {"positions": {k: list(v) for k, v in settings.toolbar_positions.items()}},
     }
 
 
