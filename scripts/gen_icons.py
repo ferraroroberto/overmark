@@ -35,6 +35,7 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as scratch:
         master = Path(scratch) / f"{theme.BRAND_GLYPH}.svg"
+        # runtime-write-exempt: a throwaway master in the system temp folder
         master.write_text(glyphs.svg(theme.BRAND_GLYPH, "currentColor"), encoding="utf-8")
         # The Stream Deck tile goes to the scratch folder: Overmark has no deck button.
         render_set(
