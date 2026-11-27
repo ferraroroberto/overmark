@@ -30,7 +30,7 @@ single_instance = { src = "app/tray/single_instance.py", sha = "160b54e2e0bcf765
 build_info = { src = "src/build_info.py", sha = "db08b78dabcd817616ca4fc2954035466d2435d7", dest = "src/build_info.py" }
 restart_check = { src = "src/restart_check.py", sha = "f8c2f66eae7a69f3c834386579702ed5b747d7af", dest = "src/restart_check.py" }
 ratchet_baseline = { src = "scripts/ratchet_baseline.py", sha = "48db2132dab2dfc38b6154948ca17fd1f4b9232f", dest = "scripts/ratchet_baseline.py" }
-installer = { src = "src/installer.py", sha = "bafa9446b907dcb7fc6d833c1edfb1a069b7ca38", dest = "src/installer.py" }
+installer = { src = "src/installer.py", sha = "f774234582bc8fe2ce2e44804275b690b192f40d", dest = "src/installer.py" }
 ps_script = { src = "src/ps_script.py", sha = "2d786d295c9b8d545aaf35703889638096f251ad", dest = "src/ps_script.py" }
 
 # What setup.bat (src/installer.py) installs and checks. No registries and no autostart: config.json
@@ -43,19 +43,25 @@ sample = "config.sample.json"
 target = "config.json"
 
 [[install.check]]
-name = "git (updates and the restart's build check)"
-which = "git"
-hint = "install Git for Windows"
+name   = "git"
+level  = "optional"
+blocks = "updates and the restart's build check"
+which  = "git"
+hint   = "install Git for Windows"
 
 [[install.check]]
-name = "Recording: ffmpeg"
+name    = "ffmpeg"
+level   = "optional"
+blocks  = "recording"
 command = ["{python}", "-B", "scripts/install_check.py", "ffmpeg"]
-hint = "only recording needs it: put ffmpeg on PATH, or set recording.ffmpeg_path"
+hint    = "only recording needs it: put ffmpeg on PATH, or set recording.ffmpeg_path"
 
 [[install.check]]
-name = "Restart helper (tray.bat --restart)"
+name    = "Restart helper"
+level   = "optional"
+blocks  = "tray.bat --restart"
 command = ["{python}", "-B", "scripts/install_check.py", "restart-helper"]
-hint = "it comes from fleet-config's install.ps1; without it, quit from the tray menu and run tray.bat"
+hint    = "it comes from fleet-config's install.ps1; without it, quit from the tray menu and run tray.bat"
 
 [static_ratchet]
 enabled = true
