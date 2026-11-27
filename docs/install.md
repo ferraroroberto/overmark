@@ -22,12 +22,12 @@ cd overmark
 1. creates `.venv` when it is missing;
 2. installs `requirements.txt`, and later reinstalls only when that file changed (its hash is kept inside `.venv`);
 3. creates `config.json` from `config.sample.json` when it is missing;
-4. ends with a checklist that marks each item `ok`, `missing` or `unknown`.
+4. ends with two lists: the required items, each `ok`, `missing` or `unknown`, and the optional features, each `available`, `off` or `unknown` with what it unlocks. Setup has succeeded when it ends with `Setup complete` and exits 0; an optional feature that is `off` never changes that.
 
-On a fresh PC the checklist can still ask for:
+On a fresh PC these optional features may read `off`:
 
-- **Recording: ffmpeg** (`missing` until ffmpeg is installed; everything but recording works without it).
-- **Restart helper** (`missing` without `fleet-config`; then restart by quitting from the tray menu and running `.\tray.bat`).
+- **ffmpeg**, for recording (`off` until ffmpeg is installed; everything but recording works without it).
+- **Restart helper** (`off` without `fleet-config`; then restart by quitting from the tray menu and running `.\tray.bat`).
 
 `.\setup.bat -WhatIf` lists every change it would make, makes none, and prints the same checklist.
 
