@@ -1,7 +1,7 @@
 """The fleet design tokens (design.md light, design.dark.md dark) for the app's own chrome.
 
-Every colour, size and radius the toolbar, cheat-sheet, recording chip, settings
-window, tray menu and tray icon use comes from here; docs/design-tokens.md maps
+Every colour, size and radius the toolbar, cheat-sheet, recording chip, tray menu
+and tray icon use comes from here; docs/design-tokens.md maps
 each one back to its design-system token. Ink colours are not here: they are the
 compression-safe preset palette, a function of the drawing, not chrome.
 """
@@ -36,7 +36,6 @@ LIGHT = {
     "control_border": "#818b98",
     "control_fill": "#f6f8fa",  # canvas-subtle: the light control fill
     "neutral_soft": "rgba(101, 109, 118, 41)",
-    "settings_canvas": "#ededee",  # settings-group's sunk page: 8% fg over card
 }
 
 DARK = {
@@ -63,7 +62,6 @@ DARK = {
     "control_border": "#6e7681",
     "control_fill": "#21262d",  # border-muted: the dark control fill
     "neutral_soft": "rgba(125, 133, 144, 41)",
-    "settings_canvas": "#0d1117",  # dark's canvas already sits a step under its cards
 }
 
 FONT = '"Segoe UI", system-ui, sans-serif'  # Windows' system-ui face
@@ -83,7 +81,6 @@ GUTTER = 12
 RADIUS_SM = 8
 RADIUS_MD = 12
 RADIUS_LG = 16
-RADIUS_SETTINGS = 20
 CONTROL_HEIGHT = 36
 HIT_TARGET = 44
 
@@ -113,62 +110,13 @@ def tokens() -> dict[str, str]:
 
 
 def stylesheet(t: dict[str, str]) -> str:
-    """Qt stylesheet for the settings window, toolbar, cheat-sheet and tray menu."""
+    """Qt stylesheet for the toolbar, cheat-sheet, recording chip and tray menu."""
     return f"""
     * {{ font-family: {FONT}; font-size: {TEXT_SM}px; color: {t["fg"]}; }}
-    QDialog {{ background: {t["settings_canvas"]}; }}
     QWidget#cheatSheet {{ background: {t["card"]}; }}
-    QGroupBox {{
-        background: {t["card"]}; border: none; border-radius: {RADIUS_SETTINGS}px;
-        margin-top: 30px; padding: {SPACE_MD}px;
-    }}
-    QGroupBox::title {{
-        subcontrol-origin: margin; left: {SPACE_XS}px; padding: 0 {SPACE_XS}px;
-        font-size: {TEXT_BODY}px; font-weight: 700; color: {t["fg_muted"]};
-    }}
     QLabel#muted, QLabel#note {{ color: {t["fg_muted"]}; font-size: {TEXT_SM}px; }}
-    QLabel#error {{ color: {t["danger_text"]}; font-weight: 600; }}
     QLabel#heading {{ font-size: {TEXT_HEADING_MD}px; font-weight: 700; }}
     QLabel#key {{ font-weight: 600; }}
-    QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QKeySequenceEdit {{
-        background: {t["control_fill"]}; border: 1px solid {t["control_border"]};
-        border-radius: {RADIUS_MD}px; padding: 0 {SPACE_SM}px; min-height: {CONTROL_HEIGHT - 2}px;
-    }}
-    QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus,
-    QKeySequenceEdit:focus {{
-        border: 2px solid {t["accent"]};
-    }}
-    QComboBox QAbstractItemView {{
-        background: {t["card"]}; border: 1px solid {t["border"]};
-        selection-background-color: {t["accent_soft"]}; selection-color: {t["accent_text"]};
-    }}
-    QPushButton {{
-        background: transparent; border: 1px solid {t["border"]}; border-radius: {RADIUS_MD}px;
-        padding: 0 {SPACE_MD}px; min-height: {CONTROL_HEIGHT}px; font-weight: 600;
-        color: {t["fg_muted"]};
-    }}
-    QPushButton:hover {{ color: {t["fg"]}; }}
-    QPushButton:focus {{ border: 2px solid {t["accent"]}; }}
-    QPushButton#primary {{
-        background: {t["accent_fill"]}; color: {t["accent_fg"]};
-        border-color: {t["accent_border_strong"]};
-    }}
-    QPushButton:disabled {{
-        background: {t["canvas_subtle"]}; color: {t["fg_muted"]}; border-color: {t["border"]};
-    }}
-    QCheckBox {{ spacing: {SPACE_SM}px; }}
-    QTabWidget::pane {{ border: none; background: {t["settings_canvas"]}; }}
-    QTabBar::tab {{
-        background: transparent; border: 1px solid transparent; border-radius: {RADIUS_MD}px;
-        padding: {SPACE_SM}px {SPACE_MD}px; margin: {SPACE_XS}px; font-weight: 600;
-        color: {t["fg_muted"]};
-    }}
-    QTabBar::tab:hover {{ color: {t["fg"]}; }}
-    QTabBar::tab:selected {{
-        background: {t["accent_soft"]}; border-color: {t["accent_border_soft"]};
-        color: {t["accent_text"]};
-    }}
-    QScrollArea, QScrollArea > QWidget > QWidget {{ background: transparent; }}
     QScrollBar:vertical {{ background: transparent; width: 10px; margin: 0; }}
     QScrollBar::handle:vertical {{
         background: {t["control_border"]}; border-radius: 5px; min-height: 32px;

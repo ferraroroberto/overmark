@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=auto">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117">
+<title>Overmark settings</title>
+<!-- The vendored text-size boot script: stamps the theme and text size before first paint. -->
+<script>
+  (function () {
+    var app = 'overmark';
+    var root = document.documentElement;
+    var theme = null;
+    var size = null;
+    try {
+      theme = localStorage.getItem(app + '.theme');
+      size = localStorage.getItem(app + '.textsize');
+    } catch (e) {}
+    var dark = theme ? theme === 'dark'
+      : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'dark' : 'light';
+    root.dataset.textsize = size === 'small' || size === 'large' ? size : 'default';
+  })();
+</script>
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="icon" href="/static/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="apple-touch-icon" href="/static/icon-180.png">
+<link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/_vendored/base/base.css">
+<link rel="stylesheet" href="/static/_vendored/card/card.css">
+<link rel="stylesheet" href="/static/_vendored/switch/switch.css">
+<link rel="stylesheet" href="/static/_vendored/icon-button/icon-button.css">
+<link rel="stylesheet" href="/static/_vendored/button/button.css">
+<link rel="stylesheet" href="/static/_vendored/select-native/select-native.css">
+<link rel="stylesheet" href="/static/_vendored/segmented/segmented.css">
+<link rel="stylesheet" href="/static/_vendored/text-size/text-size.css">
+<link rel="stylesheet" href="/static/_vendored/modal/modal.css">
+<link rel="stylesheet" href="/static/_vendored/settings-group/settings-group.css">
+<link rel="stylesheet" href="/static/_vendored/toast/toast.css">
+<link rel="stylesheet" href="/static/_vendored/page-foot/page-foot.css">
+<link rel="stylesheet" href="/static/_vendored/page-foot/restart-sheet.css">
+<script type="module" src="/static/app.js"></script>
+</head>
+<body>
+<!-- icons-sprite -->
+
+<dialog class="settings-page" id="settingsPage" open aria-labelledby="settingsTitle" data-track-view="settings">
+  <header class="settings-page-head">
+    <h1 class="settings-page-title" id="settingsTitle">Overmark settings</h1>
+    <button type="button" class="icon-button settings-page-close" id="themeToggle" aria-label="Switch to dark theme" data-track="settings.theme">
+      <svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>
+    </button>
+  </header>
+  <div class="settings-page-body" id="settingsBody" aria-busy="true">
+
+    <h2 class="settings-group-label" id="groupDrawing">Drawing</h2>
+    <section class="card settings-group" aria-labelledby="groupDrawing">
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-monitor"></use></svg>
+        <span class="settings-row-text">
+          <span class="settings-row-label">Cover all screens</span>
+          <span class="settings-row-hint">Off: the main screen only</span>
+        </span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" data-path="screens.cover_all" data-track="settings.cover-all"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-hourglass"></use></svg>
+        <span class="settings-row-label">Fade ink after a delay</span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" data-path="fade.enabled" data-track="settings.fade"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row" id="fadeDelayRow">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-timer"></use></svg>
+        <span class="settings-row-label">Fade delay</span>
+        <span class="settings-row-number">
+          <input class="settings-row-input" type="number" inputmode="decimal" min="0.5" max="3600" step="0.5" data-path="fade.delay_seconds" data-what="Fade delay" data-track="settings.fade-delay">
+          <span class="settings-row-unit">s</span>
+        </span>
+      </label>
+    </section>
+    <p class="settings-footnote">Ink shows in OBS Display Capture (a whole monitor). Window Capture of another application does not include it.</p>
+
+    <h2 class="settings-group-label" id="groupPresets">Presets</h2>
+    <section class="card settings-group" id="presetList" aria-labelledby="groupPresets"></section>
+    <p class="settings-footnote">Keys 1 to 7 pick a preset while drawing.</p>
+
+    <h2 class="settings-group-label" id="groupHotkeys">Hotkeys</h2>
+    <section class="card settings-group" aria-labelledby="groupHotkeys">
+      <button type="button" class="settings-row" aria-haspopup="dialog" data-hotkey="toggle_draw" data-title="Draw hotkey" data-track="settings.hotkey-draw">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-pencil"></use></svg>
+        <span class="settings-row-label">Draw on and off</span>
+        <span class="settings-row-value"></span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+      <button type="button" class="settings-row" aria-haspopup="dialog" data-hotkey="record_toggle" data-title="Recording hotkey" data-track="settings.hotkey-record">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-video"></use></svg>
+        <span class="settings-row-label">Start and stop recording</span>
+        <span class="settings-row-value"></span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+      <button type="button" class="settings-row" aria-haspopup="dialog" data-hotkey="record_pause" data-title="Pause hotkey" data-track="settings.hotkey-pause">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-pause"></use></svg>
+        <span class="settings-row-label">Pause and resume</span>
+        <span class="settings-row-value"></span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+      <button type="button" class="settings-row" aria-haspopup="dialog" id="keysRow" data-track="settings.draw-keys">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-keyboard"></use></svg>
+        <span class="settings-row-label">Keys while drawing</span>
+        <span class="settings-row-value">Fixed</span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+    </section>
+
+    <h2 class="settings-group-label" id="groupRecording">Recording</h2>
+    <section class="card settings-group" aria-labelledby="groupRecording">
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-monitor"></use></svg>
+        <span class="settings-row-label">Screen</span>
+        <select class="settings-row-select" id="screenSelect" data-path="recording.screen" data-kind="screen" data-track="settings.rec-screen"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-mouse-pointer-2"></use></svg>
+        <span class="settings-row-label">Show the pointer</span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" data-path="recording.cursor" data-track="settings.rec-cursor"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-pencil"></use></svg>
+        <span class="settings-row-label">Include the ink</span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" data-path="recording.include_ink" data-track="settings.rec-ink"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-gauge"></use></svg>
+        <span class="settings-row-label">Frame rate</span>
+        <select class="settings-row-select" id="fpsSelect" data-path="recording.frame_rate" data-kind="int" data-track="settings.rec-fps"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-camera"></use></svg>
+        <span class="settings-row-label">Capture method</span>
+        <select class="settings-row-select" id="backendSelect" data-path="recording.backend" data-track="settings.rec-backend"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+    </section>
+    <p class="settings-footnote">Pause ends the current part of the video and resume starts the next; about a second around each pause is not recorded. The parts are joined into one file on stop.</p>
+
+    <h2 class="settings-group-label" id="groupFile">Recording file</h2>
+    <section class="card settings-group" aria-labelledby="groupFile">
+      <button type="button" class="settings-row" aria-haspopup="dialog" data-text="recording.folder" data-title="Recording folder" data-placeholder="Videos\Overmark" data-browse="true" data-track="settings.rec-folder">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-folder"></use></svg>
+        <span class="settings-row-label">Folder</span>
+        <span class="settings-row-value"></span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+      <button type="button" class="settings-row" aria-haspopup="dialog" data-text="recording.name_pattern" data-title="File name" data-tokens="true" data-track="settings.rec-name">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-file-text"></use></svg>
+        <span class="settings-row-label">Name</span>
+        <span class="settings-row-value"></span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-package"></use></svg>
+        <span class="settings-row-label">Format</span>
+        <select class="settings-row-select" id="containerSelect" data-path="recording.container" data-track="settings.rec-format"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-sliders-horizontal"></use></svg>
+        <span class="settings-row-label">Quality</span>
+        <select class="settings-row-select" id="qualitySelect" data-path="recording.quality" data-track="settings.rec-quality"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-activity"></use></svg>
+        <span class="settings-row-text">
+          <span class="settings-row-label">Bitrate</span>
+          <span class="settings-row-hint">0 follows the quality</span>
+        </span>
+        <span class="settings-row-number">
+          <input class="settings-row-input" type="number" inputmode="numeric" min="0" step="500" id="bitrateInput" data-path="recording.bitrate_kbps" data-what="Bitrate" data-whole="true" data-track="settings.rec-bitrate">
+          <span class="settings-row-unit">kbps</span>
+        </span>
+      </label>
+    </section>
+    <p class="settings-footnote" id="nameFootnote">Existing files are never overwritten: -2, -3 and so on are added.</p>
+
+    <h2 class="settings-group-label" id="groupAudio">Recording audio</h2>
+    <section class="card settings-group" aria-labelledby="groupAudio">
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-mic"></use></svg>
+        <span class="settings-row-label">Record the microphone</span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" id="micSwitch" data-path="recording.microphone.enabled" data-track="settings.rec-mic"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row" id="micDeviceRow">
+        <span class="settings-row-label">Microphone</span>
+        <select class="settings-row-select" id="micSelect" data-path="recording.microphone.device" data-track="settings.rec-mic-device"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-volume-2"></use></svg>
+        <span class="settings-row-text">
+          <span class="settings-row-label">Record system audio</span>
+          <span class="settings-row-hint" id="systemAudioHint">What the computer plays</span>
+        </span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" id="systemAudioSwitch" data-path="recording.system_audio.enabled" data-track="settings.rec-system-audio"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row" id="systemAudioDeviceRow">
+        <span class="settings-row-label">Output</span>
+        <select class="settings-row-select" id="systemAudioSelect" data-path="recording.system_audio.device" data-track="settings.rec-system-audio-device"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <button type="button" class="settings-row" aria-haspopup="dialog" data-text="recording.ffmpeg_path" data-title="ffmpeg" data-placeholder="found on PATH" data-track="settings.rec-ffmpeg">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-terminal"></use></svg>
+        <span class="settings-row-label">ffmpeg</span>
+        <span class="settings-row-value"></span>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+      </button>
+    </section>
+
+    <h2 class="settings-group-label" id="groupAwake">Keep-awake</h2>
+    <section class="card settings-group" aria-labelledby="groupAwake">
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-sun"></use></svg>
+        <span class="settings-row-text">
+          <span class="settings-row-label">Keep the display awake</span>
+          <span class="settings-row-hint">For long sessions</span>
+        </span>
+        <button type="button" class="toggle" role="switch" aria-checked="false" data-path="keep_awake.enabled" data-track="settings.awake"><span class="knob"></span><span class="toggle-label">OFF</span></button>
+      </label>
+      <label class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-settings"></use></svg>
+        <span class="settings-row-label">Method</span>
+        <select class="settings-row-select" id="awakeModeSelect" data-path="keep_awake.mode" data-track="settings.awake-mode"></select>
+        <svg class="icon settings-row-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      </label>
+      <label class="settings-row" id="awakeIntervalRow">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-timer"></use></svg>
+        <span class="settings-row-label">Nudge after idle</span>
+        <span class="settings-row-number">
+          <input class="settings-row-input" type="number" inputmode="numeric" id="awakeInterval" data-path="keep_awake.interval_seconds" data-what="Nudge interval" data-whole="true" data-track="settings.awake-interval">
+          <span class="settings-row-unit">s</span>
+        </span>
+      </label>
+      <label class="settings-row" id="awakeDistanceRow">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-mouse-pointer-2"></use></svg>
+        <span class="settings-row-label">Nudge distance</span>
+        <span class="settings-row-number">
+          <input class="settings-row-input" type="number" inputmode="numeric" min="1" id="awakeDistance" data-path="keep_awake.distance_px" data-what="Nudge distance" data-whole="true" data-track="settings.awake-distance">
+          <span class="settings-row-unit">px</span>
+        </span>
+      </label>
+    </section>
+
+    <h2 class="settings-group-label" id="groupDisplay">Display</h2>
+    <section class="card settings-group" aria-labelledby="groupDisplay">
+      <div class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-scan-text"></use></svg>
+        <span class="settings-row-label">Text size</span>
+        <div class="segmented" id="textSizeControl" role="group" aria-label="Text size">
+          <button type="button" class="segmented-item" aria-pressed="false" data-textsize="small" data-track="settings.text-size">Small</button>
+          <button type="button" class="segmented-item" aria-pressed="true" data-textsize="default" data-track="settings.text-size">Default</button>
+          <button type="button" class="segmented-item" aria-pressed="false" data-textsize="large" data-track="settings.text-size">Large</button>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="settings-group-label" id="groupAbout">About</h2>
+    <section class="card settings-group" aria-labelledby="groupAbout">
+      <div class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-info"></use></svg>
+        <span class="settings-row-label">Build</span>
+        <span class="settings-row-value" id="aboutBuild"></span>
+      </div>
+      <div class="settings-row">
+        <svg class="icon settings-row-icon" aria-hidden="true"><use href="#i-shield-check"></use></svg>
+        <span class="settings-row-label">Access</span>
+        <span class="settings-row-value">This PC only</span>
+      </div>
+    </section>
+    <p class="settings-footnote">Changes save and apply as you make them. Tap the build line to check for an update or restart Overmark.</p>
+
+    <footer class="page-foot">
+      <p id="buildReadout"></p>
+    </footer>
+  </div>
+</dialog>
+
+<dialog class="detail-dialog settings-sheet" id="textSheet" aria-labelledby="textSheetTitle" data-track-view="settings.text">
+  <div class="detail-card">
+    <div class="detail-header">
+      <h2 id="textSheetTitle" tabindex="-1" autofocus></h2>
+      <button type="button" class="icon-button detail-close" aria-label="Close" data-close data-track="settings.text-close">
+        <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+      </button>
+    </div>
+    <div class="settings-sheet-body">
+      <input class="input-native" id="textSheetInput" type="text" aria-labelledby="textSheetTitle" spellcheck="false" autocomplete="off">
+      <p class="sheet-hint" id="textSheetHint"></p>
+      <button type="button" class="button-surface" id="textSheetBrowse" data-track="settings.text-browse">
+        <svg class="icon" aria-hidden="true"><use href="#i-folder"></use></svg>Browse on this PC
+      </button>
+    </div>
+    <div class="detail-actions">
+      <button type="button" class="button-primary detail-save-btn" id="textSheetDone" data-track="settings.text-done">Done</button>
+    </div>
+    <div class="sheet-toast" hidden></div>
+  </div>
+</dialog>
+
+<dialog class="detail-dialog settings-sheet" id="hotkeySheet" aria-labelledby="hotkeySheetTitle" data-track-view="settings.hotkey">
+  <div class="detail-card">
+    <div class="detail-header">
+      <h2 id="hotkeySheetTitle" tabindex="-1"></h2>
+      <button type="button" class="icon-button detail-close" aria-label="Close" data-close data-track="settings.hotkey-close">
+        <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+      </button>
+    </div>
+    <div class="settings-sheet-body">
+      <input class="input-native hotkey-capture" id="hotkeyCapture" type="text" readonly autofocus aria-describedby="hotkeyHint" aria-labelledby="hotkeySheetTitle">
+      <p class="sheet-hint" id="hotkeyHint">Press the new combination: Ctrl, Alt or Win with a letter, a digit, F1 to F24, Space, Pause, Insert, Home or End.</p>
+    </div>
+    <div class="detail-actions">
+      <button type="button" class="button-primary detail-save-btn" id="hotkeySheetDone" data-track="settings.hotkey-done">Done</button>
+    </div>
+    <div class="sheet-toast" hidden></div>
+  </div>
+</dialog>
+
+<dialog class="detail-dialog settings-sheet" id="presetSheet" aria-labelledby="presetSheetTitle" data-track-view="settings.preset">
+  <div class="detail-card">
+    <div class="detail-header">
+      <h2 id="presetSheetTitle" tabindex="-1" autofocus></h2>
+      <button type="button" class="icon-button detail-close" aria-label="Close" data-close data-track="settings.preset-close">
+        <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+      </button>
+    </div>
+    <div class="settings-sheet-body">
+      <label class="row"><span>Name</span><input class="input-native" id="presetName" type="text" maxlength="40" autocomplete="off" data-track="settings.preset-name"></label>
+      <label class="row"><span>Colour</span><input class="input-native" id="presetColor" type="color" data-track="settings.preset-color"></label>
+      <label class="row"><span>Thickness (px)</span><input class="input-native" id="presetThickness" type="number" inputmode="decimal" min="1" max="120" step="1" data-track="settings.preset-thickness"></label>
+      <label class="row"><span>Transparent</span><button type="button" class="toggle" role="switch" aria-checked="false" id="presetTransparent" data-track="settings.preset-transparent"><span class="knob"></span><span class="toggle-label">OFF</span></button></label>
+      <label class="row" id="presetPercentRow"><span>Transparency (%)</span><input class="input-native" id="presetPercent" type="number" inputmode="numeric" min="0" step="5" data-track="settings.preset-percent"></label>
+      <label class="row"><span>Dark outline</span><button type="button" class="toggle" role="switch" aria-checked="false" id="presetOutline" data-track="settings.preset-outline"><span class="knob"></span><span class="toggle-label">OFF</span></button></label>
+      <label class="row" id="presetOutlineRow"><span>Outline (px)</span><input class="input-native" id="presetOutlinePx" type="number" inputmode="decimal" min="0" max="12" step="0.5" data-track="settings.preset-outline-px"></label>
+    </div>
+    <div class="detail-actions">
+      <button type="button" class="button-primary detail-save-btn" id="presetSheetDone" data-track="settings.preset-done">Done</button>
+    </div>
+    <div class="sheet-toast" hidden></div>
+  </div>
+</dialog>
+
+<dialog class="detail-dialog settings-sheet" id="keysSheet" aria-labelledby="keysSheetTitle" data-track-view="settings.draw-keys">
+  <div class="detail-card">
+    <div class="detail-header">
+      <h2 id="keysSheetTitle" tabindex="-1" autofocus>Keys while drawing</h2>
+      <button type="button" class="icon-button detail-close" aria-label="Close" data-close data-track="settings.keys-close">
+        <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+      </button>
+    </div>
+    <div class="settings-sheet-body" id="keysList"></div>
+    <div class="detail-actions">
+      <button type="button" class="button-primary detail-save-btn" data-close data-track="settings.keys-done">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+</body>
+</html>

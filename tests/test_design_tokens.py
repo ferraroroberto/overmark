@@ -21,13 +21,12 @@ SRC = Path(__file__).resolve().parents[1] / "src" / "overmark"
 CHROME = [
     SRC / "app.py",
     SRC / "toolbar.py",
-    SRC / "settings_dialog.py",
     SRC / "icons.py",
     SRC / "glyphs.py",
     SRC / "recording" / "indicator.py",
 ]
 HEX = re.compile(r"#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b")
-# Every glyph the toolbar, tray menu, settings window and recording chip draw.
+# Every glyph the toolbar, tray menu and recording chip draw.
 USED = [
     theme.BRAND_GLYPH,
     "highlighter",
@@ -44,8 +43,6 @@ USED = [
     "square",
     "pause",
     "play",
-    "video",
-    "folder",
 ]
 
 

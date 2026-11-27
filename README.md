@@ -14,11 +14,12 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 - Seven presets (colour, thickness, transparency on/off and amount, outline on/off and thickness): keys `1` to `7`, or the mouse wheel over the toolbar.
 - Fading is a setting: on or off plus a delay in seconds; strokes then ease out over about 0.6 s. `F` pins the ink on screen so it stops fading.
 - The toolbar (a pill that collapses to a small handle and expands on hover) can be moved: press anywhere on it and drag it to any screen. It stays where you drop it, remembered per screen layout, with the collapsed handle at the middle of where you left the pill; a click without a drag still works the button under the pointer.
-- The toolbar, the cheat-sheet and the settings window are excluded from screen capture.
+- The toolbar and the cheat-sheet are excluded from screen capture.
 - Compression-safe defaults: widths in capture pixels (pen 6, highlighter 28, text 32, laser dot 18 with a 6 px halo), a dark outline on every stroke (a light one on dark ink), and a brightness-first palette with no pure red or blue.
 - Keep-awake, off by default, for presentations and long sessions: a tray item and the toolbar's sun button toggle it, and the tray icon gets a green badge while it is armed. The default method asks Windows to keep the display on, so the pointer never moves; the alternative nudges the pointer 1 px and back after a whole interval of inactivity, and never while a stroke is drawn, a label typed or the laser held.
-- Screen recording through ffmpeg (see [Recording](#recording)): all screens in one video, or one screen, with the toolbar, the recording chip and settings kept out of the video.
-- The toolbar, cheat-sheet, settings window, recording chip and tray menu follow the fleet design system in light and dark, switching with the Windows theme, with Lucide icons throughout ([docs/design-tokens.md](docs/design-tokens.md)).
+- Screen recording through ffmpeg (see [Recording](#recording)): all screens in one video, or one screen, with the toolbar and the recording chip kept out of the video.
+- Settings is a web page: Settings in the tray menu or on the toolbar opens `http://127.0.0.1:8467/` in the browser (see [Settings](#settings)).
+- The toolbar, cheat-sheet, recording chip and tray menu follow the fleet design system in light and dark, switching with the Windows theme, with Lucide icons throughout ([docs/design-tokens.md](docs/design-tokens.md)); the settings page is built from the fleet's vendored web components.
 - Mouse, touch and pen share one input path; pen pressure varies the width and the pen's eraser end (or barrel button) erases whole strokes.
 
 ## Keys while drawing
@@ -36,9 +37,19 @@ Screen annotation for live facilitation: draw on any screen (pen, highlighter, a
 
 Keys reach the app only while drawing, so they never collide with the application underneath. All of them are rebindable in `config.json` (`keys`); the draw hotkey is also rebindable in Settings.
 
+## Settings
+
+Settings in the tray menu or on the toolbar stops drawing and opens the settings page in the default browser. It is one page of grouped sections: Drawing (cover all screens, fading), Presets, Hotkeys (the three global hotkeys, each set by pressing the combination, and the in-draw keys, shown read-only), Recording, Recording file, Recording audio, Keep-awake, Display (text size) and About. A sun or moon button in the header switches the page between light and dark.
+
+Every change is saved to `config.json` and applied to the running app at once; nothing needs a restart. A change the app refuses changes nothing and says why: a hotkey that clashes with another hotkey or an in-draw key, a hotkey another program already holds, an invalid keep-awake interval or file-name pattern, or the microphone on with no device. The folder row's Browse opens a folder picker on this PC.
+
+The footer shows the running build. Tapping it opens the fleet restart sheet: check for an update, pull it when the checkout is only behind, and restart Overmark through `tray.bat --restart`.
+
+The page is served by the tray itself (FastAPI on port 8467, bound to 127.0.0.1). It answers only requests from this PC that name a loopback host, refuses writes from another site's page, and has no sign-in.
+
 ## Configuration
 
-`config.json` (git-ignored) is created from `config.sample.json` on first run. Settings saves it; you can also edit it by hand while the app is closed.
+`config.json` (git-ignored) is created from `config.sample.json` on first run. The settings page saves it; you can also edit it by hand while the app is closed.
 
 | Key | Meaning |
 |---|---|
@@ -91,7 +102,7 @@ Clone and run `setup.bat`. `setup.bat -InPlace` reinstalls a clone at the same p
 powershell -File scripts/run.ps1 -Console   # run in the console with the log, for debugging
 ```
 
-`tray.bat` is the standard fleet tray launcher: it stops by process id (never a blanket kill) and needs the shared tray helper from `fleet-config`'s `install.ps1` for `--restart`; a plain start works without it. The tray holds a session-wide single-instance mutex, so a second copy exits at once. Overmark has no web app, so the tray also answers `GET http://127.0.0.1:8467/api/version` (loopback only, read-only: the commit it loaded and its process id); `--restart` reads that before and after and fails unless a new process serves the checkout's `HEAD`. `scripts/run.ps1` without `-Console` calls `tray.bat`. To start Overmark at log-on, point a Startup shortcut at `tray.bat`, or register it in the app launcher (a scan of this folder recognises `tray.bat` as a tray).
+`tray.bat` is the standard fleet tray launcher: it stops by process id (never a blanket kill) and needs the shared tray helper from `fleet-config`'s `install.ps1` for `--restart`; a plain start works without it. The tray holds a session-wide single-instance mutex, so a second copy exits at once. The tray's settings server also answers `GET http://127.0.0.1:8467/api/version` (loopback only: the commit it loaded, its start time and its process id); `--restart` reads that before and after and fails unless a new process serves the checkout's `HEAD`. `scripts/run.ps1` without `-Console` calls `tray.bat`. To start Overmark at log-on, point a Startup shortcut at `tray.bat`, or register it in the app launcher (a scan of this folder recognises `tray.bat` as a tray).
 
 ## Verify
 
